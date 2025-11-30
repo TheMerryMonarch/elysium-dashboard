@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Elysium Tank Dashboard</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+<header>
+    <div id="title">Elysium Tank</div>
+    <button class="lang-toggle" onclick="toggleLanguage()">日本語</button>
+</header>
+
+<main>
+    <div class="sensor-grid">
+        <!-- Temperature -->
+        <div class="sensor-card">
+            <div class="sensor-name" id="temp-label">Temperature</div>
+            <div id="temp-value" class="sensor-value">--</div>
+            <div class="sensor-unit" id="temp-unit">°F</div>
+        </div>
+
+        <!-- Dissolved Oxygen -->
+        <div class="sensor-card">
+            <div class="sensor-name" id="do-label">Dissolved Oxygen</div>
+            <div id="do-value" class="sensor-value">--</div>
+            <div class="sensor-unit" id="do-unit">mg/L</div>
+        </div>
+
+        <!-- TDS / Conductivity -->
+        <div class="sensor-card">
+            <div class="sensor-name" id="tds-label">TDS / Conductivity</div>
+            <div id="tds-value" class="sensor-value">--</div>
+            <div class="sensor-unit" id="tds-unit">µS/cm</div>
+        </div>
+    </div>
+</main>
+
+<script>
+// =======================
+// API CONFIGURATION
+// =======================
+const API_BASE = "https://elysium-cloud.onrender.com";
+const ENDPOINTS = {
+    latest: `${API_BASE}/latest`,
+    health: `${API_BASE}/health`
+};
+
+// =======================
+// LANGUAGE TOGGLE
+// =======================
+let currentLang = "en";
+
+const translations = {
+    en: {
+        title: "Elysium Tank",
+        temp: "Temperature",
+        do: "Dissolved Oxygen",
+        tds: "TDS / Conductivity",
+        tempUnit: "°F",
+        doUnit: "mg/L",
+        tdsUnit: "µS/cm",
+        button: "日本語"
+    },
+    jp: {
+        title: "天国水族館",
+        temp: "水温",
+        do: "溶存酸素",
+        tds: "TDS / 導電率",
+        tempUnit: "°F",
+        doUnit: "mg/L",
+        tdsUnit: "µS/cm",
+        button: "English"
+    }
+};
+
+function applyLanguage() {
+    const t = translations[currentLang];
+
+    document.getElementById("title").textContent = t.title;
+
+    document.getElementById("temp-label").textContent = t.temp;
+    document.getElementById("temp-unit").textContent = t.tempUnit;
+
+    document.getElementById("do-label").textContent = t.do;
+    document.getElementById("do-unit").textContent = t.doUnit;
+
+    document.getElementById("tds-label").textContent = t.tds;
+    document.getElementById("tds-unit").textContent = t.tdsUnit;
+
+    document.querySelector(".lang-toggle").textContent = t.button;
+}
+
+function toggleLanguage() {
+    currentLang = currentLang === "en" ? "jp" : "en";
+    applyLanguage();
+}
+
+applyLanguage();
+
+// =======================
+// LIVE UPDATE LOOP
+// =======================
+async function fetchLatest() {
+    const res = await fetch(ENDPOINTS.latest);
+    if (!res.ok) return {};
+    return res.json();
+}
+
+async function updateDashboard() {
+    try {
+        const data = await fetchLatest();
+
+        if (data.temperature_f !== undefined)
+            document.getElementById("temp-value").textContent = data.temperature_f.toFixed(2);
+
+        if (data.do_mg_per_l !== undefined)
+            document.getElementById("do-value").textContent = data.do_mg_per_l.toFixed(2);
+
+        if (data.tds_us_cm !== undefined)
+            document.getElementById("tds-value").textContent = data.tds_us_cm.toFixed(1);
+
+    } catch (err) {
+        console.error("Update error:", err);
+    }
+}
+
+setInterval(updateDashboard, 5000);
+updateDashboard();
+
+</script>
+
+</body>
+</html>
+

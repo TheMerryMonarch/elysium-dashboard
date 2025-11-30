@@ -1,0 +1,115 @@
+/* Page layout */
+body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: radial-gradient(circle at top, #1f2937, #020617);
+    color: #e5e7eb;
+    margin: 0;
+    min-height: 100vh;
+}
+
+/* Header */
+header {
+    background: rgba(15, 23, 42, 0.95);
+    padding: 1.2rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    backdrop-filter: blur(10px);
+}
+
+#title {
+    font-size: 1.8rem;
+    font-weight: 600;
+}
+
+/* Language toggle button */
+.lang-toggle {
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.6);
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.4);
+    transition: transform 0.1s ease, box-shadow 0.1s ease, filter 0.1s ease;
+}
+
+.lang-toggle:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.05);
+    box-shadow: 0 0 14px rgba(34, 197, 94, 0.6);
+}
+
+/* Sensor grid */
+.sensor-grid {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+    padding: 2.5rem 1rem;
+}
+
+/* Sensor cards */
+.sensor-card {
+    background: radial-gradient(circle at top left, #1f2937, #020617);
+    border-radius: 18px;
+    padding: 1.6rem 1.8rem;
+    min-width: 220px;
+    box-shadow:
+        0 18px 45px rgba(15, 23, 42, 0.8),
+        0 0 0 1px rgba(148, 163, 184, 0.25);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.sensor-card::before {
+    content: "";
+    position: absolute;
+    inset: -40%;
+    background: radial-gradient(circle at top, rgba(59, 130, 246, 0.13), transparent 60%);
+    opacity: 0.9;
+    pointer-events: none;
+}
+
+.sensor-name {
+    font-size: 1.1rem;
+    margin-bottom: 0.6rem;
+    color: #e5e7eb;
+}
+
+.sensor-value {
+    font-size: 2.6rem;
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+    color: #f9fafb;
+}
+
+.sensor-unit {
+    font-size: 0.9rem;
+    color: #9ca3af;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .sensor-grid {
+        padding: 1.5rem 1rem;
+        gap: 1.2rem;
+    }
+
+    .sensor-card {
+        min-width: 180px;
+        padding: 1.3rem 1.4rem;
+    }
+
+    #title {
+        font-size: 1.4rem;
+    }
+}
+
