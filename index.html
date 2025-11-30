@@ -16,26 +16,41 @@
 
 <main>
     <div class="sensor-grid">
-        <!-- Temperature -->
-        <div class="sensor-card">
-            <div class="sensor-name" id="temp-label">Temperature</div>
-            <div id="temp-value" class="sensor-value">--</div>
-            <div class="sensor-unit" id="temp-unit">°F</div>
-        </div>
+        <!-- Temperature Panel -->
+        <section class="sensor-panel">
+            <div class="sensor-card">
+                <div class="sensor-name" id="temp-label">Temperature</div>
+                <div id="temp-value" class="sensor-value">--</div>
+                <div class="sensor-unit" id="temp-unit">°F</div>
+            </div>
+            <div class="chart-placeholder" id="temp-chart-placeholder">
+                Temp chart coming soon
+            </div>
+        </section>
 
-        <!-- Dissolved Oxygen -->
-        <div class="sensor-card">
-            <div class="sensor-name" id="do-label">Dissolved Oxygen</div>
-            <div id="do-value" class="sensor-value">--</div>
-            <div class="sensor-unit" id="do-unit">mg/L</div>
-        </div>
+        <!-- Dissolved Oxygen Panel -->
+        <section class="sensor-panel">
+            <div class="sensor-card">
+                <div class="sensor-name" id="do-label">Dissolved Oxygen</div>
+                <div id="do-value" class="sensor-value">--</div>
+                <div class="sensor-unit" id="do-unit">mg/L</div>
+            </div>
+            <div class="chart-placeholder" id="do-chart-placeholder">
+                O₂ chart coming soon
+            </div>
+        </section>
 
-        <!-- TDS / Conductivity -->
-        <div class="sensor-card">
-            <div class="sensor-name" id="tds-label">TDS / Conductivity</div>
-            <div id="tds-value" class="sensor-value">--</div>
-            <div class="sensor-unit" id="tds-unit">µS/cm</div>
-        </div>
+        <!-- TDS Panel -->
+        <section class="sensor-panel">
+            <div class="sensor-card">
+                <div class="sensor-name" id="tds-label">TDS / Conductivity</div>
+                <div id="tds-value" class="sensor-value">--</div>
+                <div class="sensor-unit" id="tds-unit">µS/cm</div>
+            </div>
+            <div class="chart-placeholder" id="tds-chart-placeholder">
+                TDS chart coming soon
+            </div>
+        </section>
     </div>
 </main>
 
@@ -115,13 +130,16 @@ async function updateDashboard() {
         const data = await fetchLatest();
 
         if (data.temperature_f !== undefined)
-            document.getElementById("temp-value").textContent = data.temperature_f.toFixed(2);
+            document.getElementById("temp-value").textContent =
+                data.temperature_f.toFixed(2);
 
         if (data.do_mg_per_l !== undefined)
-            document.getElementById("do-value").textContent = data.do_mg_per_l.toFixed(2);
+            document.getElementById("do-value").textContent =
+                data.do_mg_per_l.toFixed(2);
 
         if (data.tds_us_cm !== undefined)
-            document.getElementById("tds-value").textContent = data.tds_us_cm.toFixed(1);
+            document.getElementById("tds-value").textContent =
+                data.tds_us_cm.toFixed(1);
 
     } catch (err) {
         console.error("Update error:", err);

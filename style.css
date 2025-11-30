@@ -1,70 +1,116 @@
-/* Page layout */
-body {
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background: radial-gradient(circle at top, #1f2937, #020617);
-    color: #e5e7eb;
-    margin: 0;
-    min-height: 100vh;
+/* ==============
+   GLOBAL
+   ============== */
+
+* {
+    box-sizing: border-box;
 }
 
-/* Header */
+body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    margin: 0;
+    min-height: 100vh;
+    color: #f9eaff;
+    background:
+        radial-gradient(circle at top left, #311b92 0, transparent 55%),
+        radial-gradient(circle at bottom right, #880e4f 0, transparent 55%),
+        #05010a;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ==============
+   HEADER
+   ============== */
+
 header {
-    background: rgba(15, 23, 42, 0.95);
-    padding: 1.2rem 2rem;
+    background: rgba(5, 1, 20, 0.95);
+    border-bottom: 1px solid rgba(255, 105, 180, 0.25);
+    padding: 0.9rem 1.8rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.3);
     position: sticky;
     top: 0;
     z-index: 10;
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(14px);
 }
 
 #title {
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #ff6ac1; /* synthwave pink */
+    text-shadow:
+        0 0 6px rgba(255, 106, 193, 0.8),
+        0 0 16px rgba(255, 106, 193, 0.6);
 }
 
-/* Language toggle button */
+/* Lang toggle button */
+
 .lang-toggle {
-    padding: 0.4rem 0.9rem;
+    padding: 0.35rem 0.9rem;
     border-radius: 999px;
-    border: 1px solid rgba(148, 163, 184, 0.6);
-    background: linear-gradient(135deg, #22c55e, #16a34a);
-    color: white;
+    border: 1px solid rgba(77, 238, 234, 0.7);
+    background: radial-gradient(circle at top, #4deeea 0, #2f9edc 55%, #0b1020 100%);
+    color: #05010a;
     cursor: pointer;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-weight: 500;
-    box-shadow: 0 0 10px rgba(34, 197, 94, 0.4);
+    box-shadow:
+        0 0 10px rgba(77, 238, 234, 0.6),
+        0 0 18px rgba(47, 158, 220, 0.75);
     transition: transform 0.1s ease, box-shadow 0.1s ease, filter 0.1s ease;
 }
 
 .lang-toggle:hover {
     transform: translateY(-1px);
     filter: brightness(1.05);
-    box-shadow: 0 0 14px rgba(34, 197, 94, 0.6);
-}
-
-/* Sensor grid */
-.sensor-grid {
-    display: flex;
-    justify-content: center;
-    gap: 2rem;
-    flex-wrap: wrap;
-    padding: 2.5rem 1rem;
-}
-
-/* Sensor cards */
-.sensor-card {
-    background: radial-gradient(circle at top left, #1f2937, #020617);
-    border-radius: 18px;
-    padding: 1.6rem 1.8rem;
-    min-width: 220px;
     box-shadow:
-        0 18px 45px rgba(15, 23, 42, 0.8),
-        0 0 0 1px rgba(148, 163, 184, 0.25);
-    text-align: center;
+        0 0 14px rgba(77, 238, 234, 0.8),
+        0 0 26px rgba(47, 158, 220, 0.9);
+}
+
+/* ==============
+   MAIN LAYOUT
+   ============== */
+
+main {
+    flex: 1;
+    padding: 2rem 1rem 3rem;
+}
+
+.sensor-grid {
+    max-width: 1000px;
+    margin: 0 auto;
+    display: flex;
+    gap: 1.6rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+/* Each sensor gets a small tile + a chart below it */
+
+.sensor-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    width: 280px;
+}
+
+/* ==============
+   SENSOR TILE
+   ============== */
+
+.sensor-card {
+    background:
+        linear-gradient(135deg, rgba(17, 24, 39, 0.96), rgba(30, 12, 60, 0.98));
+    border-radius: 14px;
+    padding: 0.9rem 1rem;
+    box-shadow:
+        0 14px 26px rgba(0, 0, 0, 0.85),
+        0 0 0 1px rgba(255, 105, 180, 0.25);
     position: relative;
     overflow: hidden;
 }
@@ -73,43 +119,87 @@ header {
     content: "";
     position: absolute;
     inset: -40%;
-    background: radial-gradient(circle at top, rgba(59, 130, 246, 0.13), transparent 60%);
-    opacity: 0.9;
+    background:
+        radial-gradient(circle at top left, rgba(255, 106, 193, 0.16), transparent 60%),
+        radial-gradient(circle at bottom right, rgba(77, 238, 234, 0.1), transparent 60%);
     pointer-events: none;
+    opacity: 0.9;
 }
 
 .sensor-name {
-    font-size: 1.1rem;
-    margin-bottom: 0.6rem;
-    color: #e5e7eb;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #f9eaff;
+    opacity: 0.85;
+    margin-bottom: 0.45rem;
 }
 
 .sensor-value {
-    font-size: 2.6rem;
+    font-size: 1.9rem;
     font-weight: 600;
-    margin-bottom: 0.2rem;
-    color: #f9fafb;
+    color: #ffbdf2;
+    text-shadow:
+        0 0 8px rgba(255, 106, 193, 0.9),
+        0 0 18px rgba(255, 106, 193, 0.5);
+    margin-bottom: 0.1rem;
 }
 
 .sensor-unit {
-    font-size: 0.9rem;
-    color: #9ca3af;
+    font-size: 0.82rem;
+    color: #c4b5fd;
+    opacity: 0.9;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
+/* ==============
+   CHART PLACEHOLDERS
+   ============== */
+
+.chart-placeholder {
+    flex: 1;
+    border-radius: 14px;
+    border: 1px dashed rgba(148, 163, 184, 0.4);
+    padding: 0.8rem;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+        repeating-linear-gradient(
+            -45deg,
+            rgba(15, 23, 42, 0.9),
+            rgba(15, 23, 42, 0.9) 6px,
+            rgba(31, 41, 55, 0.9) 6px,
+            rgba(31, 41, 55, 0.9) 12px
+        );
+    box-shadow:
+        0 10px 22px rgba(0, 0, 0, 0.75),
+        0 0 0 1px rgba(37, 99, 235, 0.3);
+}
+
+/* ==============
+   RESPONSIVE
+   ============== */
+
+@media (max-width: 900px) {
     .sensor-grid {
-        padding: 1.5rem 1rem;
-        gap: 1.2rem;
+        justify-content: center;
     }
 
-    .sensor-card {
-        min-width: 180px;
-        padding: 1.3rem 1.4rem;
+    .sensor-panel {
+        width: 100%;
+        max-width: 320px;
+    }
+
+    header {
+        padding: 0.8rem 1rem;
     }
 
     #title {
-        font-size: 1.4rem;
+        font-size: 1.3rem;
     }
 }
 
