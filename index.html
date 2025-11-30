@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Elysium Tank Dashboard</title>
     <link rel="stylesheet" href="style.css" />
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
@@ -23,8 +25,8 @@
                 <div id="temp-value" class="sensor-value">--</div>
                 <div class="sensor-unit" id="temp-unit">°F</div>
             </div>
-            <div class="chart-placeholder" id="temp-chart-placeholder">
-                Temp chart coming soon
+            <div class="chart-placeholder">
+                <canvas id="temp-chart"></canvas>
             </div>
         </section>
 
@@ -35,8 +37,8 @@
                 <div id="do-value" class="sensor-value">--</div>
                 <div class="sensor-unit" id="do-unit">mg/L</div>
             </div>
-            <div class="chart-placeholder" id="do-chart-placeholder">
-                O₂ chart coming soon
+            <div class="chart-placeholder">
+                <canvas id="do-chart"></canvas>
             </div>
         </section>
 
@@ -47,8 +49,8 @@
                 <div id="tds-value" class="sensor-value">--</div>
                 <div class="sensor-unit" id="tds-unit">µS/cm</div>
             </div>
-            <div class="chart-placeholder" id="tds-chart-placeholder">
-                TDS chart coming soon
+            <div class="chart-placeholder">
+                <canvas id="tds-chart"></canvas>
             </div>
         </section>
     </div>
@@ -61,6 +63,7 @@
 const API_BASE = "https://elysium-cloud.onrender.com";
 const ENDPOINTS = {
     latest: `${API_BASE}/latest`,
+    history: `${API_BASE}/history`,
     health: `${API_BASE}/health`
 };
 
@@ -117,7 +120,7 @@ function toggleLanguage() {
 applyLanguage();
 
 // =======================
-// LIVE UPDATE LOOP
+// LIVE VALUE UPDATE
 // =======================
 async function fetchLatest() {
     const res = await fetch(ENDPOINTS.latest);
@@ -142,12 +145,153 @@ async function updateDashboard() {
                 data.tds_us_cm.toFixed(1);
 
     } catch (err) {
-        console.error("Update error:", err);
+        console.error("Update error (latest):", err);
     }
 }
 
 setInterval(updateDashboard, 5000);
 updateDashboard();
+
+// =======================
+// HISTORY + CHARTS
+// =======================
+async function fetchHistory() {
+    const res = await fetch(ENDPOINTS.history);
+    if (!res.ok) return [];
+    return res.json();
+}
+
+let tempChart, doChart, tdsChart;
+
+function buildOrUpdateChart(chartRef, ctx, labels, data, colorLine, colorFill) {
+    if (!ctx) return;
+
+    if (!chartRef) {
+        return new Chart(ctx, {
+            type: "line",
+            data: {
+                labels,
+                datasets: [
+                    {
+                        data,
+                        borderColor: colorLine,
+                        backgroundColor: colorFill,
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        ticks: {
+                            color: "#9ca3af",
+                            maxTicksLimit: 5
+                        },
+                        grid: {
+                            color: "rgba(148, 163, 184, 0.2)"
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            color: "#e5e7eb"
+                        },
+                        grid: {
+                            color: "rgba(55, 65, 81, 0.5)"
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => `${ctx.parsed.y}`
+                        }
+                    }
+                }
+            }
+        });
+    } else {
+        chartRef.data.labels = labels;
+        chartRef.data.datasets[0].data = data;
+        chartRef.update();
+        return chartRef;
+    }
+}
+
+async function updateCharts() {
+    try {
+        const history = await fetchHistory();
+        if (!Array.isArray(history) || history.length === 0) return;
+
+        const labels = history.map((r) => {
+            try {
+                return new Date(r.timestamp).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit"
+                });
+            } catch {
+                return "";
+            }
+        });
+
+        // Allow for old structure: {value, timestamp} for temp
+        const tempData = history.map((r) =>
+            r.temperature_f !== undefined ? r.temperature_f :
+            r.value !== undefined ? r.value : undefined
+        );
+
+        const doData = history.map((r) =>
+            r.do_mg_per_l !== undefined ? r.do_mg_per_l : null
+        );
+
+        const tdsData = history.map((r) =>
+            r.tds_us_cm !== undefined ? r.tds_us_cm : null
+        );
+
+        const tempCtx = document.getElementById("temp-chart")?.getContext("2d");
+        const doCtx = document.getElementById("do-chart")?.getContext("2d");
+        const tdsCtx = document.getElementById("tds-chart")?.getContext("2d");
+
+        // Neon colors, semi-transparent fills
+        tempChart = buildOrUpdateChart(
+            tempChart,
+            tempCtx,
+            labels,
+            tempData,
+            "rgba(255, 106, 193, 0.95)",   // hot pink
+            "rgba(255, 106, 193, 0.18)"
+        );
+
+        doChart = buildOrUpdateChart(
+            doChart,
+            doCtx,
+            labels,
+            doData,
+            "rgba(77, 238, 234, 0.95)",    // cyan
+            "rgba(77, 238, 234, 0.16)"
+        );
+
+        tdsChart = buildOrUpdateChart(
+            tdsChart,
+            tdsCtx,
+            labels,
+            tdsData,
+            "rgba(139, 92, 246, 0.95)",    // purple
+            "rgba(139, 92, 246, 0.18)"
+        );
+
+    } catch (err) {
+        console.error("Update error (history):", err);
+    }
+}
+
+// Initial chart load + periodic refresh
+updateCharts();
+setInterval(updateCharts, 30000); // every 30s
 
 </script>
 
