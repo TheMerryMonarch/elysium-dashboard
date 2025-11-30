@@ -208,3 +208,42 @@ main {
     }
 }
 
+/* ============================= */
+/* SHRIMP CENSUS FLOATING TILE   */
+/* ============================= */
+
+#shrimp-census-tile {
+    position: absolute;
+    top: 90px;        /* slightly below header */
+    right: 20px;      /* margin from right edge */
+    width: 180px;
+    padding: 12px 14px;
+    background: rgba(255, 106, 193, 0.15);   /* neon pink translucent */
+    border: 1px solid rgba(255, 106, 193, 0.5);
+    border-radius: 10px;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 0 15px rgba(255, 106, 193, 0.35);
+    text-align: center;
+    z-index: 100;     /* stays on top */
+}
+
+.shrimp-title {
+    font-size: 15px;
+    letter-spacing: 1px;
+    color: #ff6ac1;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+
+.shrimp-count {
+    font-size: 32px;
+    font-weight: 700;
+    color: #ffe5f7;
+    margin-bottom: 4px;
+}
+
+.shrimp-subtext {
+    font-size: 12px;
+    color: #d8a8c8;
+}
+
