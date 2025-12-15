@@ -213,15 +213,19 @@ async function updateDashboard() {
   if (tempEl) tempEl.textContent = (temp != null && temp !== "") ? Number(temp).toFixed(2) : "--";
 
   // DO (support likely keys)
-  const doVal = data.do_mg_per_l ?? data.do ?? data.dissolved_oxygen;
+  const doVal = data.do_mg_per_l;
   const doEl = document.getElementById("do-value");
-  if (doEl) doEl.textContent = (doVal != null && doVal !== "") ? Number(doVal).toFixed(2) : "--";
-
+  if (doEl) {
+    const v = (doVal === undefined || doVal === null || doVal === "") ? 0 : Number(doVal);
+    doEl.textContent = Number.isFinite(v) ? v.toFixed(2) : "0.00";
+}
   // TDS (support likely keys)
-  const tdsVal = data.tds_us_cm ?? data.tds ?? data.conductivity;
+  const tdsVal = data.tds_us_cm;
   const tdsEl = document.getElementById("tds-value");
-  if (tdsEl) tdsEl.textContent = (tdsVal != null && tdsVal !== "") ? Number(tdsVal).toFixed(0) : "--";
-
+  if (tdsEl) {
+    const v = (tdsVal === undefined || tdsVal === null || tdsVal === "") ? 0 : Number(tdsVal);
+    tdsEl.textContent = Number.isFinite(v) ? v.toFixed(0) : "0";
+}
   // Last updated lines (one timestamp powers all three)
   if (data.timestamp) {
     const s = secondsAgo(data.timestamp);
