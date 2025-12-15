@@ -25,16 +25,42 @@
 <main>
   <div class="sensor-grid">
 
-    <!-- Temperature -->
+    <!-- Temperature Panel -->
     <section class="sensor-panel">
       <div class="sensor-card">
         <div class="sensor-name" id="temp-label">Temperature</div>
         <div id="temp-value" class="sensor-value">--</div>
         <div class="sensor-unit" id="temp-unit">°F</div>
-        <div id="last-updated" class="sensor-subtext">Last updated —</div>
+        <div id="temp-last-updated" class="sensor-subtext">Last updated —</div>
       </div>
       <div class="chart-placeholder">
         <canvas id="temp-chart"></canvas>
+      </div>
+    </section>
+
+    <!-- Dissolved Oxygen Panel -->
+    <section class="sensor-panel">
+      <div class="sensor-card">
+        <div class="sensor-name" id="do-label">Dissolved Oxygen</div>
+        <div id="do-value" class="sensor-value">--</div>
+        <div class="sensor-unit" id="do-unit">mg/L</div>
+        <div id="do-last-updated" class="sensor-subtext">Last updated —</div>
+      </div>
+      <div class="chart-placeholder">
+        <canvas id="do-chart"></canvas>
+      </div>
+    </section>
+
+    <!-- TDS Panel -->
+    <section class="sensor-panel">
+      <div class="sensor-card">
+        <div class="sensor-name" id="tds-label">TDS / Conductivity</div>
+        <div id="tds-value" class="sensor-value">--</div>
+        <div class="sensor-unit" id="tds-unit">µS/cm</div>
+        <div id="tds-last-updated" class="sensor-subtext">Last updated —</div>
+      </div>
+      <div class="chart-placeholder">
+        <canvas id="tds-chart"></canvas>
       </div>
     </section>
 
@@ -48,7 +74,8 @@
 const API_BASE = "https://elysium-cloud.onrender.com";
 const ENDPOINTS = {
   latest: `${API_BASE}/latest`,
-  history: `${API_BASE}/history`
+  history: `${API_BASE}/history`,
+  health: `${API_BASE}/health`
 };
 
 /* =======================
@@ -66,9 +93,12 @@ function formatCST(iso) {
 }
 
 function secondsAgo(iso) {
-  return Math.floor((Date.now() - new Date(iso)) / 1000);
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return null;
+  return Math.floor((Date.now() - t) / 1000);
 }
 
+// Stable hour key in CST: "YYYY-MM-DD HH"
 function hourKeyCST(iso) {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Chicago",
@@ -78,9 +108,37 @@ function hourKeyCST(iso) {
     hour: "2-digit",
     hour12: false
   }).formatToParts(new Date(iso));
-
-  const get = t => parts.find(p => p.type === t)?.value;
+  const get = (t) => parts.find(p => p.type === t)?.value;
   return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}`;
+}
+
+// Build the last 24 hour keys + labels (in CST), ending at the current hour
+function last24HoursCST() {
+  const keys = [];
+  const labels = [];
+
+  // Use local "now" but format keys/labels in CST
+  const now = new Date();
+  // Build 24 points back from now (hourly)
+  for (let i = 23; i >= 0; i--) {
+    const d = new Date(now.getTime() - i * 60 * 60 * 1000);
+
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Chicago",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      hour12: false
+    }).formatToParts(d);
+
+    const get = (t) => parts.find(p => p.type === t)?.value;
+    const key = `${get("year")}-${get("month")}-${get("day")} ${get("hour")}`;
+    keys.push(key);
+    labels.push(`${get("hour")}:00`);
+  }
+
+  return { keys, labels };
 }
 
 /* =======================
@@ -92,13 +150,21 @@ const translations = {
   en: {
     title: "Elysium Tank",
     temp: "Temperature",
-    unit: "°F",
+    do: "Dissolved Oxygen",
+    tds: "TDS / Conductivity",
+    tempUnit: "°F",
+    doUnit: "mg/L",
+    tdsUnit: "µS/cm",
     button: "日本語"
   },
   jp: {
     title: "天国水族館",
     temp: "水温",
-    unit: "°F",
+    do: "溶存酸素",
+    tds: "TDS / 導電率",
+    tempUnit: "°F",
+    doUnit: "mg/L",
+    tdsUnit: "µS/cm",
     button: "English"
   }
 };
@@ -106,8 +172,16 @@ const translations = {
 function applyLanguage() {
   const t = translations[currentLang];
   document.getElementById("title").textContent = t.title;
+
   document.getElementById("temp-label").textContent = t.temp;
-  document.getElementById("temp-unit").textContent = t.unit;
+  document.getElementById("temp-unit").textContent = t.tempUnit;
+
+  document.getElementById("do-label").textContent = t.do;
+  document.getElementById("do-unit").textContent = t.doUnit;
+
+  document.getElementById("tds-label").textContent = t.tds;
+  document.getElementById("tds-unit").textContent = t.tdsUnit;
+
   document.querySelector(".lang-toggle").textContent = t.button;
 }
 
@@ -117,15 +191,15 @@ function toggleLanguage() {
 }
 
 /* =======================
-   FETCH + UPDATE
+   SAFE FETCH (LATEST)
 ======================= */
 async function fetchLatest() {
   try {
     const r = await fetch(ENDPOINTS.latest, { cache: "no-store" });
-    if (!r.ok) throw new Error(r.status);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return await r.json();
   } catch (e) {
-    console.error("fetchLatest failed", e);
+    console.error("fetchLatest failed:", e);
     return {};
   }
 }
@@ -133,93 +207,179 @@ async function fetchLatest() {
 async function updateDashboard() {
   const data = await fetchLatest();
 
+  // Temperature (support both keys)
   const temp = data.temperature_f ?? data.temp_f;
-  if (temp != null) {
-    document.getElementById("temp-value").textContent =
-      Number(temp).toFixed(2);
+  const tempEl = document.getElementById("temp-value");
+  if (tempEl) tempEl.textContent = (temp != null && temp !== "") ? Number(temp).toFixed(2) : "--";
+
+  // DO (support likely keys)
+  const doVal = data.do_mg_per_l ?? data.do ?? data.dissolved_oxygen;
+  const doEl = document.getElementById("do-value");
+  if (doEl) doEl.textContent = (doVal != null && doVal !== "") ? Number(doVal).toFixed(2) : "--";
+
+  // TDS (support likely keys)
+  const tdsVal = data.tds_us_cm ?? data.tds ?? data.conductivity;
+  const tdsEl = document.getElementById("tds-value");
+  if (tdsEl) tdsEl.textContent = (tdsVal != null && tdsVal !== "") ? Number(tdsVal).toFixed(0) : "--";
+
+  // Last updated lines (one timestamp powers all three)
+  if (data.timestamp) {
+    const s = secondsAgo(data.timestamp);
+    const line = (s == null)
+      ? `Last updated — (${formatCST(data.timestamp)})`
+      : `Last updated ${s}s ago (${formatCST(data.timestamp)})`;
+
+    const tlu = document.getElementById("temp-last-updated");
+    const dlu = document.getElementById("do-last-updated");
+    const hlu = document.getElementById("tds-last-updated");
+    if (tlu) tlu.textContent = line;
+    if (dlu) dlu.textContent = line;
+    if (hlu) hlu.textContent = line;
   }
 
-  if (data.timestamp) {
-    const secs = secondsAgo(data.timestamp);
-    document.getElementById("last-updated").textContent =
-      `Last updated ${secs}s ago (${formatCST(data.timestamp)})`;
-  }
+  // Debug (optional)
+  // console.log("LATEST:", data);
 }
 
 /* =======================
-   HISTORY → HOURLY AVG
+   HISTORY (24h hourly avg)
 ======================= */
-let tempChart;
-
 async function fetchHistory() {
-  const r = await fetch(ENDPOINTS.history);
-  if (!r.ok) return [];
-  return r.json();
+  try {
+    const r = await fetch(ENDPOINTS.history, { cache: "no-store" });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return await r.json();
+  } catch (e) {
+    console.error("fetchHistory failed:", e);
+    return [];
+  }
 }
 
-async function updateChart() {
-  const history = await fetchHistory();
-  const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-
-  const buckets = new Map();
+function avgBucketsFromHistory(history, valueGetter) {
+  const now = Date.now();
+  const cutoff = now - 24 * 60 * 60 * 1000;
+  const buckets = new Map(); // key -> {sum,count}
 
   for (const r of history) {
-    const t = new Date(r.timestamp).getTime();
-    if (t < cutoff) continue;
+    const ts = new Date(r.timestamp).getTime();
+    if (!Number.isFinite(ts) || ts < cutoff || ts > now) continue;
 
-    const v = r.temperature_f ?? r.temp_f ?? r.value;
-    if (!Number.isFinite(v)) continue;
+    const v = valueGetter(r);
+    const n = Number(v);
+    if (!Number.isFinite(n)) continue;
 
     const key = hourKeyCST(r.timestamp);
     const cur = buckets.get(key) || { sum: 0, count: 0 };
-    cur.sum += v;
-    cur.count++;
+    cur.sum += n;
+    cur.count += 1;
     buckets.set(key, cur);
   }
+  return buckets;
+}
 
-  const keys = Array.from(buckets.keys()).sort();
-  const labels = keys.map(k => `${k.slice(-2)}:00`);
-  const data = keys.map(k => buckets.get(k).sum / buckets.get(k).count);
-
-  const ctx = document.getElementById("temp-chart").getContext("2d");
-
-  if (!tempChart) {
-    tempChart = new Chart(ctx, {
-      type: "line",
-      data: {
-        labels,
-        datasets: [{
-          data,
-          borderColor: "rgba(255,106,193,0.95)",
-          backgroundColor: "rgba(255,106,193,0.18)",
-          fill: true,
-          tension: 0.3,
-          pointRadius: 0
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } }
-      }
-    });
-  } else {
-    tempChart.data.labels = labels;
-    tempChart.data.datasets[0].data = data;
-    tempChart.update();
-  }
+function seriesFromBuckets(hourKeys, buckets) {
+  return hourKeys.map(k => {
+    const b = buckets.get(k);
+    if (!b || !b.count) return null;
+    return b.sum / b.count;
+  });
 }
 
 /* =======================
-   BOOT
+   CHARTS
+======================= */
+let tempChart, doChart, tdsChart;
+
+function makeLineChart(ctx, labels, data, borderColor, backgroundColor) {
+  return new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        data,
+        borderColor,
+        backgroundColor,
+        fill: true,
+        tension: 0.3,
+        pointRadius: 0,
+        spanGaps: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { maxTicksLimit: 8 } }
+      }
+    }
+  });
+}
+
+async function updateCharts() {
+  const history = await fetchHistory();
+  if (!Array.isArray(history) || history.length === 0) {
+    console.warn("No history returned; charts will be empty.");
+    return;
+  }
+
+  const { keys: hourKeys, labels } = last24HoursCST();
+
+  // Pick fields robustly (support old/new shapes)
+  const tempBuckets = avgBucketsFromHistory(history, r =>
+    r.temperature_f ?? r.temp_f ?? r.value
+  );
+
+  const doBuckets = avgBucketsFromHistory(history, r =>
+    r.do_mg_per_l ?? r.do ?? r.dissolved_oxygen
+  );
+
+  const tdsBuckets = avgBucketsFromHistory(history, r =>
+    r.tds_us_cm ?? r.tds ?? r.conductivity
+  );
+
+  const tempData = seriesFromBuckets(hourKeys, tempBuckets);
+  const doData   = seriesFromBuckets(hourKeys, doBuckets);
+  const tdsData  = seriesFromBuckets(hourKeys, tdsBuckets);
+
+  const tempCtx = document.getElementById("temp-chart")?.getContext("2d");
+  const doCtx   = document.getElementById("do-chart")?.getContext("2d");
+  const tdsCtx  = document.getElementById("tds-chart")?.getContext("2d");
+
+  if (tempCtx) {
+    if (!tempChart) tempChart = makeLineChart(tempCtx, labels, tempData, "rgba(255, 106, 193, 0.95)", "rgba(255, 106, 193, 0.18)");
+    else { tempChart.data.labels = labels; tempChart.data.datasets[0].data = tempData; tempChart.update(); }
+  }
+
+  if (doCtx) {
+    if (!doChart) doChart = makeLineChart(doCtx, labels, doData, "rgba(77, 238, 234, 0.95)", "rgba(77, 238, 234, 0.16)");
+    else { doChart.data.labels = labels; doChart.data.datasets[0].data = doData; doChart.update(); }
+  }
+
+  if (tdsCtx) {
+    if (!tdsChart) tdsChart = makeLineChart(tdsCtx, labels, tdsData, "rgba(139, 92, 246, 0.95)", "rgba(139, 92, 246, 0.18)");
+    else { tdsChart.data.labels = labels; tdsChart.data.datasets[0].data = tdsData; tdsChart.update(); }
+  }
+
+  // Debug: prove we have non-null points
+  // console.log("Chart points:", {
+  //   tempNonNull: tempData.filter(x => x != null).length,
+  //   doNonNull: doData.filter(x => x != null).length,
+  //   tdsNonNull: tdsData.filter(x => x != null).length
+  // });
+}
+
+/* =======================
+   BOOTSTRAP
 ======================= */
 window.addEventListener("DOMContentLoaded", () => {
   applyLanguage();
-  updateDashboard();
-  updateChart();
 
-  setInterval(updateDashboard, 5000);
-  setInterval(updateChart, 60000);
+  updateDashboard();
+  updateCharts();
+
+  setInterval(updateDashboard, 5000);   // live values
+  setInterval(updateCharts, 60000);     // charts refresh every 60s
 });
 </script>
 
