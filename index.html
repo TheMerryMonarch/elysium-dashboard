@@ -7,6 +7,7 @@
 
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
 </head>
 
 <body>
@@ -14,15 +15,21 @@
 <header>
   <div id="title">Elysium Tank</div>
   <button class="lang-toggle" onclick="toggleLanguage()">日本語</button>
-
-  <div id="shrimp-census-tile">
-    <div class="shrimp-title">Shrimp Census</div>
-    <div class="shrimp-count">94</div>
-    <div class="shrimp-subtext">as of 10/1/25</div>
-  </div>
 </header>
 
 <main>
+
+  <!-- Live tank stream -->
+  <section class="stream-panel">
+    <div class="stream-header">
+      <div class="stream-label">Live Window</div>
+      <div class="live-badge"><span class="live-dot"></span><span class="live-text">LIVE</span></div>
+    </div>
+    <div class="stream-frame">
+      <video id="elysium-stream" controls autoplay muted playsinline></video>
+    </div>
+  </section>
+
   <div class="sensor-grid">
 
     <!-- Temperature Panel -->
@@ -38,29 +45,16 @@
       </div>
     </section>
 
-    <!-- Dissolved Oxygen Panel -->
+    <!-- pH Panel -->
     <section class="sensor-panel">
       <div class="sensor-card">
-        <div class="sensor-name" id="do-label">Dissolved Oxygen</div>
-        <div id="do-value" class="sensor-value">--</div>
-        <div class="sensor-unit" id="do-unit">mg/L</div>
-        <div id="do-last-updated" class="sensor-subtext">Last updated —</div>
+        <div class="sensor-name" id="ph-label">pH</div>
+        <div id="ph-value" class="sensor-value">--</div>
+        <div class="sensor-unit" id="ph-unit"></div>
+        <div id="ph-last-updated" class="sensor-subtext">Last updated —</div>
       </div>
       <div class="chart-placeholder">
-        <canvas id="do-chart"></canvas>
-      </div>
-    </section>
-
-    <!-- TDS Panel -->
-    <section class="sensor-panel">
-      <div class="sensor-card">
-        <div class="sensor-name" id="tds-label">TDS / Conductivity</div>
-        <div id="tds-value" class="sensor-value">--</div>
-        <div class="sensor-unit" id="tds-unit">µS/cm</div>
-        <div id="tds-last-updated" class="sensor-subtext">Last updated —</div>
-      </div>
-      <div class="chart-placeholder">
-        <canvas id="tds-chart"></canvas>
+        <canvas id="ph-chart"></canvas>
       </div>
     </section>
 
@@ -149,22 +143,20 @@ let currentLang = "en";
 const translations = {
   en: {
     title: "Elysium Tank",
+    stream: "Live Window",
     temp: "Temperature",
-    do: "Dissolved Oxygen",
-    tds: "TDS / Conductivity",
+    ph: "pH",
     tempUnit: "°F",
-    doUnit: "mg/L",
-    tdsUnit: "µS/cm",
+    phUnit: "",
     button: "日本語"
   },
   jp: {
     title: "天国水族館",
+    stream: "ライブ映像",
     temp: "水温",
-    do: "溶存酸素",
-    tds: "TDS / 導電率",
+    ph: "pH",
     tempUnit: "°F",
-    doUnit: "mg/L",
-    tdsUnit: "µS/cm",
+    phUnit: "",
     button: "English"
   }
 };
@@ -173,14 +165,14 @@ function applyLanguage() {
   const t = translations[currentLang];
   document.getElementById("title").textContent = t.title;
 
+  const sl = document.querySelector(".stream-label");
+  if (sl) sl.textContent = t.stream;
+
   document.getElementById("temp-label").textContent = t.temp;
   document.getElementById("temp-unit").textContent = t.tempUnit;
 
-  document.getElementById("do-label").textContent = t.do;
-  document.getElementById("do-unit").textContent = t.doUnit;
-
-  document.getElementById("tds-label").textContent = t.tds;
-  document.getElementById("tds-unit").textContent = t.tdsUnit;
+  document.getElementById("ph-label").textContent = t.ph;
+  document.getElementById("ph-unit").textContent = t.phUnit;
 
   document.querySelector(".lang-toggle").textContent = t.button;
 }
@@ -212,20 +204,12 @@ async function updateDashboard() {
   const tempEl = document.getElementById("temp-value");
   if (tempEl) tempEl.textContent = (temp != null && temp !== "") ? Number(temp).toFixed(2) : "--";
 
-  // DO (support likely keys)
-  const doVal = data.do_mg_per_l;
-  const doEl = document.getElementById("do-value");
-  if (doEl) {
-    const v = (doVal === undefined || doVal === null || doVal === "") ? 0 : Number(doVal);
-    doEl.textContent = Number.isFinite(v) ? v.toFixed(2) : "0.00";
-}
-  // TDS (support likely keys)
-  const tdsVal = data.tds_us_cm;
-  const tdsEl = document.getElementById("tds-value");
-  if (tdsEl) {
-    const v = (tdsVal === undefined || tdsVal === null || tdsVal === "") ? 0 : Number(tdsVal);
-    tdsEl.textContent = Number.isFinite(v) ? v.toFixed(0) : "0";
-}
+  // pH
+  const phVal = data.ph ?? data.pH ?? data.ph_value;
+  const phEl = document.getElementById("ph-value");
+  if (phEl) {
+    phEl.textContent = (phVal != null && phVal !== "") ? Number(phVal).toFixed(2) : "--";
+  }
   // Last updated lines (one timestamp powers all three)
   if (data.timestamp) {
     const s = secondsAgo(data.timestamp);
@@ -234,11 +218,9 @@ async function updateDashboard() {
       : `Last updated ${s}s ago (${formatCST(data.timestamp)})`;
 
     const tlu = document.getElementById("temp-last-updated");
-    const dlu = document.getElementById("do-last-updated");
-    const hlu = document.getElementById("tds-last-updated");
+    const plu = document.getElementById("ph-last-updated");
     if (tlu) tlu.textContent = line;
-    if (dlu) dlu.textContent = line;
-    if (hlu) hlu.textContent = line;
+    if (plu) plu.textContent = line;
   }
 
   // Debug (optional)
@@ -292,7 +274,7 @@ function seriesFromBuckets(hourKeys, buckets) {
 /* =======================
    CHARTS
 ======================= */
-let tempChart, doChart, tdsChart;
+let tempChart, phChart;
 
 function makeLineChart(ctx, labels, data, borderColor, backgroundColor) {
   return new Chart(ctx, {
@@ -334,35 +316,24 @@ async function updateCharts() {
     r.temperature_f ?? r.temp_f ?? r.value
   );
 
-  const doBuckets = avgBucketsFromHistory(history, r =>
-    r.do_mg_per_l ?? r.do ?? r.dissolved_oxygen
-  );
-
-  const tdsBuckets = avgBucketsFromHistory(history, r =>
-    r.tds_us_cm ?? r.tds ?? r.conductivity
+  const phBuckets = avgBucketsFromHistory(history, r =>
+    r.ph ?? r.pH ?? r.ph_value
   );
 
   const tempData = seriesFromBuckets(hourKeys, tempBuckets);
-  const doData   = seriesFromBuckets(hourKeys, doBuckets);
-  const tdsData  = seriesFromBuckets(hourKeys, tdsBuckets);
+  const phData   = seriesFromBuckets(hourKeys, phBuckets);
 
   const tempCtx = document.getElementById("temp-chart")?.getContext("2d");
-  const doCtx   = document.getElementById("do-chart")?.getContext("2d");
-  const tdsCtx  = document.getElementById("tds-chart")?.getContext("2d");
+  const phCtx   = document.getElementById("ph-chart")?.getContext("2d");
 
   if (tempCtx) {
     if (!tempChart) tempChart = makeLineChart(tempCtx, labels, tempData, "rgba(255, 106, 193, 0.95)", "rgba(255, 106, 193, 0.18)");
     else { tempChart.data.labels = labels; tempChart.data.datasets[0].data = tempData; tempChart.update(); }
   }
 
-  if (doCtx) {
-    if (!doChart) doChart = makeLineChart(doCtx, labels, doData, "rgba(77, 238, 234, 0.95)", "rgba(77, 238, 234, 0.16)");
-    else { doChart.data.labels = labels; doChart.data.datasets[0].data = doData; doChart.update(); }
-  }
-
-  if (tdsCtx) {
-    if (!tdsChart) tdsChart = makeLineChart(tdsCtx, labels, tdsData, "rgba(139, 92, 246, 0.95)", "rgba(139, 92, 246, 0.18)");
-    else { tdsChart.data.labels = labels; tdsChart.data.datasets[0].data = tdsData; tdsChart.update(); }
+  if (phCtx) {
+    if (!phChart) phChart = makeLineChart(phCtx, labels, phData, "rgba(77, 238, 234, 0.95)", "rgba(77, 238, 234, 0.16)");
+    else { phChart.data.labels = labels; phChart.data.datasets[0].data = phData; phChart.update(); }
   }
 
   // Debug: prove we have non-null points
@@ -385,6 +356,43 @@ window.addEventListener("DOMContentLoaded", () => {
   setInterval(updateDashboard, 5000);   // live values
   setInterval(updateCharts, 60000);     // charts refresh every 60s
 });
+</script>
+
+<!-- =======================
+     LIVE TANK STREAM
+======================= -->
+<script>
+(function () {
+  const SRC = "https://live.elysiumshrimptank.com/hls/elysium.m3u8";
+  const video = document.getElementById("elysium-stream");
+  const badge = document.querySelector(".live-badge");
+  if (!video) return;
+
+  function setLive(on) {
+    if (!badge) return;
+    badge.classList.toggle("offline", !on);
+    const txt = badge.querySelector(".live-text");
+    if (txt) txt.textContent = on ? "LIVE" : "OFFLINE";
+  }
+
+  function start() {
+    if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      // Safari / iOS — native HLS
+      video.src = SRC;
+      video.addEventListener("playing", () => setLive(true));
+      video.addEventListener("error", () => { setLive(false); setTimeout(start, 10000); });
+    } else if (window.Hls && Hls.isSupported()) {
+      const hls = new Hls({ liveSyncDuration: 4, lowLatencyMode: true });
+      hls.loadSource(SRC);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => setLive(true));
+      hls.on(Hls.Events.ERROR, (_e, d) => {
+        if (d.fatal) { setLive(false); setTimeout(() => { hls.destroy(); start(); }, 10000); }
+      });
+    }
+  }
+  start();
+})();
 </script>
 
 </body>

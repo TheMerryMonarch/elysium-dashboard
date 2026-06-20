@@ -81,6 +81,93 @@ main {
     padding: 2rem 1rem 3rem;
 }
 
+/* ==============
+   LIVE STREAM WINDOW
+   ============== */
+
+.stream-panel {
+    max-width: 1100px;
+    margin: 0 auto 2.4rem;
+}
+
+.stream-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.8rem;
+}
+
+.stream-label {
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #f9eaff;
+    opacity: 0.85;
+}
+
+.live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #ff6ac1;
+    padding: 0.28rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 106, 193, 0.5);
+    background: rgba(255, 106, 193, 0.12);
+    box-shadow: 0 0 12px rgba(255, 106, 193, 0.3);
+}
+
+.live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ff3ba7;
+    box-shadow: 0 0 8px #ff6ac1;
+    animation: livePulse 1.6s ease-in-out infinite;
+}
+
+.live-badge.offline {
+    color: #9ca3af;
+    border-color: rgba(148, 163, 184, 0.4);
+    background: rgba(148, 163, 184, 0.1);
+    box-shadow: none;
+}
+
+.live-badge.offline .live-dot {
+    background: #9ca3af;
+    box-shadow: none;
+    animation: none;
+}
+
+@keyframes livePulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.3; transform: scale(0.75); }
+}
+
+.stream-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #05010a;
+    box-shadow:
+        0 14px 26px rgba(0, 0, 0, 0.85),
+        0 0 0 1px rgba(255, 105, 180, 0.25),
+        0 0 22px rgba(77, 238, 234, 0.12);
+}
+
+.stream-frame video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
 .sensor-grid {
     max-width: 1100px;
     margin: 0 auto;
@@ -208,42 +295,5 @@ main {
     }
 }
 
-/* ============================= */
-/* SHRIMP CENSUS FLOATING TILE   */
-/* ============================= */
-
-#shrimp-census-tile {
-    position: absolute;
-    top: 90px;        /* slightly below header */
-    right: 20px;      /* margin from right edge */
-    width: 180px;
-    padding: 12px 14px;
-    background: rgba(255, 106, 193, 0.15);   /* neon pink translucent */
-    border: 1px solid rgba(255, 106, 193, 0.5);
-    border-radius: 10px;
-    backdrop-filter: blur(6px);
-    box-shadow: 0 0 15px rgba(255, 106, 193, 0.35);
-    text-align: center;
-    z-index: 100;     /* stays on top */
-}
-
-.shrimp-title {
-    font-size: 15px;
-    letter-spacing: 1px;
-    color: #ff6ac1;
-    text-transform: uppercase;
-    margin-bottom: 6px;
-}
-
-.shrimp-count {
-    font-size: 32px;
-    font-weight: 700;
-    color: #ffe5f7;
-    margin-bottom: 4px;
-}
-
-.shrimp-subtext {
-    font-size: 12px;
-    color: #d8a8c8;
-}
+/* (shrimp census tile removed) */
 
