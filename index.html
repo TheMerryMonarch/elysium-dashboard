@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Elysium Tank Dashboard</title>
+  <title>Project Elysium</title>
 
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -59,6 +59,12 @@
     </section>
 
   </div>
+
+  <!-- Interesting flora & fauna -->
+  <section class="biota">
+    <h2 class="section-title" id="biota-title">Interesting Flora &amp; Fauna</h2>
+    <div class="biota-grid" id="biota-grid"></div>
+  </section>
 </main>
 
 <script>
@@ -142,19 +148,21 @@ let currentLang = "en";
 
 const translations = {
   en: {
-    title: "Elysium Tank",
+    title: "Project Elysium",
     stream: "Live Window",
     temp: "Temperature",
     ph: "pH",
+    biota: "Interesting Flora & Fauna",
     tempUnit: "°F",
     phUnit: "",
     button: "日本語"
   },
   jp: {
-    title: "天国水族館",
+    title: "プロジェクト・エリジウム",
     stream: "ライブ映像",
     temp: "水温",
     ph: "pH",
+    biota: "興味深い動植物",
     tempUnit: "°F",
     phUnit: "",
     button: "English"
@@ -167,6 +175,9 @@ function applyLanguage() {
 
   const sl = document.querySelector(".stream-label");
   if (sl) sl.textContent = t.stream;
+
+  const bt = document.getElementById("biota-title");
+  if (bt) bt.textContent = t.biota;
 
   document.getElementById("temp-label").textContent = t.temp;
   document.getElementById("temp-unit").textContent = t.tempUnit;
@@ -232,7 +243,7 @@ async function updateDashboard() {
 ======================= */
 async function fetchHistory() {
   try {
-    const r = await fetch(ENDPOINTS.history, { cache: "no-store" });
+    const r = await fetch(`${ENDPOINTS.history}?hours=24&limit=20000`, { cache: "no-store" });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return await r.json();
   } catch (e) {
@@ -296,7 +307,7 @@ function makeLineChart(ctx, labels, data, borderColor, backgroundColor) {
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { ticks: { maxTicksLimit: 8 } }
+        x: { ticks: { maxTicksLimit: 12, autoSkip: true } }
       }
     }
   });
@@ -345,6 +356,64 @@ async function updateCharts() {
 }
 
 /* =======================
+   FLORA & FAUNA
+   Edit this list to manage what's shown.
+   - wiki:  the Wikipedia page title from its URL
+            (en.wikipedia.org/wiki/Neocaridina_davidi  ->  "Neocaridina_davidi").
+            The photo + blurb are pulled from Wikipedia automatically.
+   - count: manual; set to null to hide the count (e.g. for plants).
+======================= */
+const BIOTA = [
+  { name: "Cherry Shrimp", wiki: "Neocaridina_davidi",    type: "Shrimp", count: 94 },
+  { name: "Amano Shrimp",  wiki: "Caridina_multidentata", type: "Shrimp", count: 6 },
+  { name: "Anubias",       wiki: "Anubias",               type: "Plant",  count: null },
+];
+
+async function wikiSummary(title) {
+  try {
+    const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const j = await r.json();
+    return { img: j.thumbnail?.source || "", text: j.extract || "" };
+  } catch (e) {
+    console.error("wiki fetch failed for", title, e);
+    return { img: "", text: "" };
+  }
+}
+
+async function renderBiota() {
+  const grid = document.getElementById("biota-grid");
+  if (!grid) return;
+  grid.innerHTML = "";
+  for (const item of BIOTA) {
+    const card = document.createElement("div");
+    card.className = "biota-card";
+    const countHtml = (item.count != null) ? `<span class="biota-count">×${item.count}</span>` : "";
+    card.innerHTML = `
+      <div class="biota-photo"></div>
+      <div class="biota-body">
+        <div class="biota-head">
+          <span class="biota-name"></span>
+          <span class="biota-type"></span>
+          ${countHtml}
+        </div>
+        <p class="biota-blurb">Loading…</p>
+      </div>`;
+    // set text via textContent to avoid HTML injection from the list
+    card.querySelector(".biota-name").textContent = item.name;
+    card.querySelector(".biota-type").textContent = item.type;
+    grid.appendChild(card);
+
+    wikiSummary(item.wiki).then(({ img, text }) => {
+      const photo = card.querySelector(".biota-photo");
+      const blurb = card.querySelector(".biota-blurb");
+      if (img) photo.style.backgroundImage = `url("${img}")`;
+      blurb.textContent = text || "No description available.";
+    });
+  }
+}
+
+/* =======================
    BOOTSTRAP
 ======================= */
 window.addEventListener("DOMContentLoaded", () => {
@@ -352,6 +421,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   updateDashboard();
   updateCharts();
+  renderBiota();
 
   setInterval(updateDashboard, 5000);   // live values
   setInterval(updateCharts, 60000);     // charts refresh every 60s
