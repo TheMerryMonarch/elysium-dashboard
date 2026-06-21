@@ -8,8 +8,6 @@
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
 
 <body>
@@ -62,30 +60,16 @@
 
   </div>
 
-  <!-- Day / night light cycle (retro LED) -->
+  <!-- Day / night -->
   <section class="lightcycle">
-    <div class="lc-panel">
-      <div class="lc-head">
-        <span class="lc-icon" id="lc-icon">
-          <svg class="px-sun" viewBox="0 0 11 11" shape-rendering="crispEdges"><g fill="currentColor"><rect x="4" y="3" width="3" height="5"/><rect x="3" y="4" width="5" height="3"/><rect x="5" y="0" width="1" height="2"/><rect x="5" y="9" width="1" height="2"/><rect x="0" y="5" width="2" height="1"/><rect x="9" y="5" width="2" height="1"/><rect x="1" y="1" width="1" height="1"/><rect x="9" y="1" width="1" height="1"/><rect x="1" y="9" width="1" height="1"/><rect x="9" y="9" width="1" height="1"/></g></svg>
-          <svg class="px-moon" viewBox="0 0 11 11" shape-rendering="crispEdges"><g fill="currentColor"><rect x="3" y="1" width="4" height="1"/><rect x="2" y="2" width="2" height="1"/><rect x="2" y="3" width="1" height="5"/><rect x="2" y="8" width="2" height="1"/><rect x="3" y="9" width="4" height="1"/></g></svg>
+    <div class="dn">
+      <span class="dn-kanji" id="kanji">日</span>
+      <div class="dn-right">
+        <span class="dn-co2" id="co2" style="display:none">
+          <span class="dn-bub"><i></i><i></i><i></i></span>
+          <span class="dn-co2-txt">CO2: online</span>
         </span>
-        <span class="lc-phase" id="lc-phase">—</span>
-        <span class="lc-co2" id="lc-co2">CO<span class="sub">2</span>&nbsp;FLOWING <span class="lc-bub"><i></i><i></i><i></i></span></span>
-      </div>
-      <div class="lc-bar">
-        <div class="lc-seg lc-night"    style="left:0%;     width:50%"></div>
-        <div class="lc-seg lc-morning"  style="left:50%;    width:4.17%"></div>
-        <div class="lc-seg lc-day"      style="left:54.17%; width:29.16%"></div>
-        <div class="lc-seg lc-twilight" style="left:83.33%; width:4.17%"></div>
-        <div class="lc-seg lc-night"    style="left:87.5%;  width:12.5%"></div>
-        <div class="lc-hand" id="lc-hand" style="left:0%"></div>
-      </div>
-      <div class="lc-axis">
-        <span class="lc-mark" style="left:50%">12P</span>
-        <span class="lc-mark" style="left:54.17%">1P</span>
-        <span class="lc-mark" style="left:83.33%">8P</span>
-        <span class="lc-mark" style="left:87.5%">9P</span>
+        <div class="dn-notice" id="notice" style="display:none"></div>
       </div>
     </div>
   </section>
@@ -99,13 +83,28 @@
   <!-- Gear / specs -->
   <section class="specs">
     <h2 class="section-title" id="specs-title">Specs</h2>
-    <ul class="specs-list">
-      <li><span class="spec-k">Tank</span><span class="spec-v">UNS 90P</span></li>
-      <li><span class="spec-k">Filter</span><span class="spec-v">Oase BioMaster Thermo</span></li>
-      <li><span class="spec-k">Substrate</span><span class="spec-v">UNS Controsoil (fine)</span></li>
-      <li><span class="spec-k">Hardscape</span><span class="spec-v">Frodo Stone</span></li>
-      <li><span class="spec-k">CO₂</span><span class="spec-v">UNS 10&nbsp;lb canister · inline atomizer</span></li>
-    </ul>
+    <div class="specs-grid">
+      <div class="spec">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="1.5"/><path d="M3 10c2.5 1.6 4.5-1.4 7.5 0s5 1.6 7.5 0"/></svg>
+        <div><b>UNS 90P</b><span>Tank</span></div>
+      </div>
+      <div class="spec">
+        <svg style="width:38px;height:38px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.4C15.4 5.4 18 7.9 17.6 11 17.4 12.3 16.2 12.7 15.6 11.8"/><path d="M12 5.4C15.4 5.4 18 7.9 17.6 11 17.4 12.3 16.2 12.7 15.6 11.8" transform="rotate(60 12 12)"/><path d="M12 5.4C15.4 5.4 18 7.9 17.6 11 17.4 12.3 16.2 12.7 15.6 11.8" transform="rotate(120 12 12)"/><path d="M12 5.4C15.4 5.4 18 7.9 17.6 11 17.4 12.3 16.2 12.7 15.6 11.8" transform="rotate(180 12 12)"/><path d="M12 5.4C15.4 5.4 18 7.9 17.6 11 17.4 12.3 16.2 12.7 15.6 11.8" transform="rotate(240 12 12)"/><path d="M12 5.4C15.4 5.4 18 7.9 17.6 11 17.4 12.3 16.2 12.7 15.6 11.8" transform="rotate(300 12 12)"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/></svg>
+        <div><b>Oase BioMaster Thermo</b><span>Filter</span></div>
+      </div>
+      <div class="spec">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16"/><path d="M12 19v-7"/><path d="M12 13c-2 0-3.4-1.2-3.6-3.6C10.6 9.6 12 10.8 12 13"/><path d="M12 14c1.9 0 3.4-1.2 3.6-3.4C13.4 10.8 12 12 12 14"/></svg>
+        <div><b>UNS Controsoil</b><span>Substrate</span></div>
+      </div>
+      <div class="spec">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 19 L6.6 10.5 L8.2 5.5 L10 8 L9.6 19 Z"/><path d="M8.2 5.5 L8.3 12"/><path d="M10.6 19 L10.8 13.5 L12.2 10.5 L13.6 13 L13.4 19 Z"/><path d="M14.8 19 L15 16 L16.2 14.3 L17.4 16.2 L17.2 19 Z"/><path d="M4 19 H20"/></svg>
+        <div><b>Frodo Stone</b><span>Hardscape</span></div>
+      </div>
+      <div class="spec">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10a4 4 0 0 1 8 0v8.4A1.6 1.6 0 0 1 14.4 20h-4.8A1.6 1.6 0 0 1 8 18.4z"/><rect x="10.6" y="3" width="2.8" height="3" rx="0.6"/><path d="M8.6 13.5h6.8"/></svg>
+        <div><b>UNS 10&nbsp;lb CO₂</b><span>Inline atomizer</span></div>
+      </div>
+    </div>
   </section>
 </main>
 
@@ -495,34 +494,40 @@ function centralNowMinutes() {
   return h * 60 + get("minute");
 }
 
+const NOTICES = { 720: "The shadows retreat", 780: "The sun rises in Elysium", 1200: "The day grows long", 1260: "Night falls in Elysium..." };
+
 function updateLightCycle() {
-  const hand = document.getElementById("lc-hand");
-  if (!hand) return;
+  const k = document.getElementById("kanji");
+  if (!k) return;
   const t = centralNowMinutes();
-  const LIGHTS_ON = 13 * 60, LIGHTS_OFF = 21 * 60;        // 1:00pm – 9:00pm CT
-  const MORNING = LIGHTS_ON - 60, TWILIGHT = LIGHTS_OFF - 60;
-  const CO2_ON = 12 * 60 + 30, CO2_OFF = 20 * 60 + 30;    // 12:30pm – 8:30pm CT
+  const ON = 13 * 60, OFF = 21 * 60;                   // lights 1:00pm – 9:00pm CT
+  const MORNING = ON - 60, TWILIGHT = OFF - 60;
+  const CO2_ON = 12 * 60 + 30, CO2_OFF = 20 * 60 + 30; // CO2 12:30pm – 8:30pm CT
 
-  let label, color;
-  if (t >= MORNING && t < LIGHTS_ON)        { label = "MORNING";  color = "#bcd0e6"; }
-  else if (t >= LIGHTS_ON && t < TWILIGHT)  { label = "DAYTIME";  color = "#f2c63f"; }
-  else if (t >= TWILIGHT && t < LIGHTS_OFF) { label = "TWILIGHT"; color = "#df6a26"; }
-  else                                      { label = "NIGHT";    color = "#9fb0e0"; }
+  let kanji, color;
+  if (t >= MORNING && t < ON)        { kanji = "朝";   color = "#b8a9ff"; }
+  else if (t >= ON && t < TWILIGHT)  { kanji = "日";   color = "#ffd86b"; }
+  else if (t >= TWILIGHT && t < OFF) { kanji = "黄昏"; color = "#ff6ac1"; }
+  else                               { kanji = "夜";   color = "#4deeea"; }
 
-  const lightsOn = (t >= LIGHTS_ON && t < LIGHTS_OFF);
-
-  // move the clock handle to the current time over a 24h bar
-  hand.style.left = (t / 1440 * 100) + "%";
-
-  const phaseEl = document.getElementById("lc-phase");
-  phaseEl.textContent = label;
-  phaseEl.style.color = color;
-
-  document.getElementById("lc-icon").classList.toggle("is-night", !lightsOn);
+  k.textContent = kanji;
+  k.style.color = color;
+  k.style.textShadow = `0 0 16px ${color}`;
 
   // CO2 line only appears while CO2 is actually flowing
-  const co2 = document.getElementById("lc-co2");
-  co2.style.display = (t >= CO2_ON && t < CO2_OFF) ? "" : "none";
+  document.getElementById("co2").style.display = (t >= CO2_ON && t < CO2_OFF) ? "" : "none";
+
+  // transition notice flashes for its one minute, in the new phase's color
+  const notice = document.getElementById("notice");
+  const msg = NOTICES[t];
+  if (msg) {
+    notice.textContent = msg;
+    notice.style.color = color;
+    notice.style.textShadow = `0 0 11px ${color}`;
+    notice.style.display = "";
+  } else {
+    notice.style.display = "none";
+  }
 }
 
 /* =======================
