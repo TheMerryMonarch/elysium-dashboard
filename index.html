@@ -60,10 +60,46 @@
 
   </div>
 
+  <!-- Day / night light cycle -->
+  <section class="lightcycle">
+    <div class="lc-card lc-night" id="lc-card">
+      <div class="lc-sky">
+<pre class="lc-sun"> \  |  /
+-- (  ) --
+ /  |  \</pre>
+        <div class="lc-horizon"></div>
+<pre class="lc-moon">  _
+ ( `.
+  )  )
+ (_.'</pre>
+      </div>
+      <div class="lc-info">
+        <div class="lc-phase" id="lc-phase">—</div>
+        <div class="lc-co2" id="lc-co2"><span class="bubbles"><i></i><i></i><i></i></span>CO₂ flowing</div>
+        <ul class="lc-sched">
+          <li>Lights&nbsp; 1:00 PM – 9:00 PM CT</li>
+          <li>CO₂&nbsp; 12:30 PM – 8:30 PM CT</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
   <!-- Interesting flora & fauna -->
   <section class="biota">
     <h2 class="section-title" id="biota-title">Interesting Flora &amp; Fauna</h2>
     <div class="biota-grid" id="biota-grid"></div>
+  </section>
+
+  <!-- Gear / specs -->
+  <section class="specs">
+    <h2 class="section-title" id="specs-title">Specs</h2>
+    <ul class="specs-list">
+      <li><span class="spec-k">Tank</span><span class="spec-v">UNS 90P</span></li>
+      <li><span class="spec-k">Filter</span><span class="spec-v">Oase BioMaster Thermo</span></li>
+      <li><span class="spec-k">Substrate</span><span class="spec-v">UNS Controsoil (fine)</span></li>
+      <li><span class="spec-k">Hardscape</span><span class="spec-v">Frodo Stone</span></li>
+      <li><span class="spec-k">CO₂</span><span class="spec-v">UNS 10&nbsp;lb canister · inline atomizer</span></li>
+    </ul>
   </section>
 </main>
 
@@ -153,6 +189,7 @@ const translations = {
     temp: "Temperature",
     ph: "pH",
     biota: "Interesting Flora & Fauna",
+    specs: "Specs",
     tempUnit: "°F",
     phUnit: "",
     button: "日本語"
@@ -163,6 +200,7 @@ const translations = {
     temp: "水温",
     ph: "pH",
     biota: "興味深い動植物",
+    specs: "機材",
     tempUnit: "°F",
     phUnit: "",
     button: "English"
@@ -178,6 +216,9 @@ function applyLanguage() {
 
   const bt = document.getElementById("biota-title");
   if (bt) bt.textContent = t.biota;
+
+  const st = document.getElementById("specs-title");
+  if (st) st.textContent = t.specs;
 
   document.getElementById("temp-label").textContent = t.temp;
   document.getElementById("temp-unit").textContent = t.tempUnit;
@@ -364,17 +405,34 @@ async function updateCharts() {
    - count: manual; set to null to hide the count (e.g. for plants).
 ======================= */
 const BIOTA = [
-  { name: "Cherry Shrimp", wiki: "Neocaridina_davidi",    type: "Shrimp", count: 94 },
-  { name: "Amano Shrimp",  wiki: "Caridina_multidentata", type: "Shrimp", count: 6 },
-  { name: "Anubias",       wiki: "Anubias",               type: "Plant",  count: null },
+  {
+    name: "Amano Shrimp", nickname: "Melvin", wiki: "Caridina multidentata",
+    type: "Shrimp", count: 1,
+    blurb: "A hardy algae-eating shrimp prized in planted tanks for its appetite and peaceful temperament. Larger than Neocaridina, and can't breed in freshwater, so the population stays put."
+  },
+  {
+    name: "Monte Carlo", wiki: "Micranthemum tweediei",
+    type: "Plant", count: null,
+    blurb: "A low-growing carpeting plant with small round leaves, used for lush foreground 'lawns'. Spreads horizontally under strong light and CO₂."
+  },
+  {
+    name: "Eleocharis vivipara", wiki: "Eleocharis vivipara",
+    type: "Plant", count: null,
+    blurb: "A tall, grass-like aquatic sedge that forms flowing background stands. Propagates by sprouting plantlets at its blade tips — hence 'vivipara'."
+  },
 ];
 
 async function wikiSummary(title) {
   try {
-    const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
+    const url = "https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*"
+      + "&prop=pageimages|extracts&piprop=thumbnail&pithumbsize=500&exintro=1&explaintext=1&redirects=1"
+      + "&titles=" + encodeURIComponent(title);
+    const r = await fetch(url);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const j = await r.json();
-    return { img: j.thumbnail?.source || "", text: j.extract || "" };
+    const page = Object.values(j.query?.pages || {})[0] || {};
+    const text = page.extract ? page.extract.split(". ").slice(0, 2).join(". ").replace(/\.?$/, ".") : "";
+    return { img: page.thumbnail?.source || "", text };
   } catch (e) {
     console.error("wiki fetch failed for", title, e);
     return { img: "", text: "" };
@@ -400,17 +458,58 @@ async function renderBiota() {
         <p class="biota-blurb">Loading…</p>
       </div>`;
     // set text via textContent to avoid HTML injection from the list
-    card.querySelector(".biota-name").textContent = item.name;
+    const nameStr = item.nickname ? `${item.name} “${item.nickname}”` : item.name;
+    card.querySelector(".biota-name").textContent = nameStr;
     card.querySelector(".biota-type").textContent = item.type;
     grid.appendChild(card);
 
+    const photo = card.querySelector(".biota-photo");
+    const blurb = card.querySelector(".biota-blurb");
+
+    // Manual overrides win; otherwise pull photo + blurb from Wikipedia.
+    // Add img:"<url>" and/or blurb:"<text>" to a BIOTA entry to override.
+    if (item.img) photo.style.backgroundImage = `url("${item.img}")`;
+    if (item.img && item.blurb) { blurb.textContent = item.blurb; continue; }
+
     wikiSummary(item.wiki).then(({ img, text }) => {
-      const photo = card.querySelector(".biota-photo");
-      const blurb = card.querySelector(".biota-blurb");
-      if (img) photo.style.backgroundImage = `url("${img}")`;
-      blurb.textContent = text || "No description available.";
+      if (!item.img && img) photo.style.backgroundImage = `url("${img}")`;
+      blurb.textContent = item.blurb || text || "No description available.";
     });
   }
+}
+
+/* =======================
+   LIGHT CYCLE (Central Time)
+======================= */
+function centralNowMinutes() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Chicago", hour: "2-digit", minute: "2-digit", hour12: false
+  }).formatToParts(new Date());
+  const get = (t) => parseInt(parts.find(p => p.type === t).value, 10);
+  let h = get("hour"); if (h === 24) h = 0;
+  return h * 60 + get("minute");
+}
+
+function updateLightCycle() {
+  const card = document.getElementById("lc-card");
+  if (!card) return;
+  const t = centralNowMinutes();
+  const LIGHTS_ON = 13 * 60, LIGHTS_OFF = 21 * 60;        // 1:00pm – 9:00pm CT
+  const MORNING = LIGHTS_ON - 60, TWILIGHT = LIGHTS_OFF - 60;
+  const CO2_ON = 12 * 60 + 30, CO2_OFF = 20 * 60 + 30;    // 12:30pm – 8:30pm CT
+
+  let phase, label;
+  if (t >= MORNING && t < LIGHTS_ON)        { phase = "morning";  label = "Morning"; }
+  else if (t >= LIGHTS_ON && t < TWILIGHT)  { phase = "day";      label = "Daytime"; }
+  else if (t >= TWILIGHT && t < LIGHTS_OFF) { phase = "twilight"; label = "Twilight"; }
+  else                                      { phase = "night";    label = "Night"; }
+
+  const lightsOn = (t >= LIGHTS_ON && t < LIGHTS_OFF);
+  card.className = "lc-card lc-" + phase + (lightsOn ? " lights-on" : "");
+  document.getElementById("lc-phase").textContent = label;
+
+  const co2 = document.getElementById("lc-co2");
+  co2.style.display = (t >= CO2_ON && t < CO2_OFF) ? "" : "none";  // only show while CO2 is flowing
 }
 
 /* =======================
@@ -422,9 +521,11 @@ window.addEventListener("DOMContentLoaded", () => {
   updateDashboard();
   updateCharts();
   renderBiota();
+  updateLightCycle();
 
-  setInterval(updateDashboard, 5000);   // live values
-  setInterval(updateCharts, 60000);     // charts refresh every 60s
+  setInterval(updateDashboard, 5000);    // live values
+  setInterval(updateCharts, 60000);      // charts refresh every 60s
+  setInterval(updateLightCycle, 30000);  // light/CO2 phase every 30s
 });
 </script>
 

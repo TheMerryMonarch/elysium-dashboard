@@ -297,6 +297,163 @@ main {
 }
 
 /* ==============
+   LIGHT CYCLE (day / night)
+   ============== */
+
+.lightcycle {
+    max-width: 1100px;
+    margin: 2.4rem auto 0;
+}
+
+.lc-card {
+    display: flex;
+    gap: 1.6rem;
+    align-items: center;
+    flex-wrap: wrap;
+    border-radius: 14px;
+    padding: 1.3rem 1.7rem;
+    box-shadow:
+        0 14px 26px rgba(0, 0, 0, 0.7),
+        0 0 0 1px rgba(255, 255, 255, 0.06);
+    transition: background 0.9s ease, color 0.9s ease;
+}
+
+.lc-sky {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 110px;
+}
+
+.lc-sun, .lc-moon {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    white-space: pre;
+    line-height: 1.1;
+    margin: 0;
+    font-size: 0.82rem;
+    transition: opacity 0.5s ease, filter 0.5s ease;
+}
+
+.lc-horizon {
+    width: 120px;
+    height: 2px;
+    margin: 0.45rem 0;
+    background: currentColor;
+    opacity: 0.45;
+    border-radius: 2px;
+}
+
+.lc-card.lights-on  .lc-sun  { opacity: 1; filter: drop-shadow(0 0 8px rgba(255, 210, 90, 0.95)); }
+.lc-card.lights-on  .lc-moon { opacity: 0.18; }
+.lc-card:not(.lights-on) .lc-sun  { opacity: 0.18; }
+.lc-card:not(.lights-on) .lc-moon { opacity: 1; filter: drop-shadow(0 0 7px rgba(180, 210, 255, 0.85)); }
+
+/* phase palettes */
+.lc-day      { background: linear-gradient(160deg, #f7e08c, #e9bd54); color: #5a3d00; }
+.lc-twilight { background: linear-gradient(160deg, #f2a85f, #d9662e); color: #3d1600; }
+.lc-night    { background: linear-gradient(160deg, #16264f, #0a1330); color: #cfe0ff; }
+.lc-morning  { background: linear-gradient(160deg, #d2dce8, #9fb0c2); color: #2a3a4d; }
+
+.lc-info { flex: 1; min-width: 180px; }
+
+.lc-phase {
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.5rem;
+}
+
+.lc-co2 {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.55rem;
+}
+
+.bubbles {
+    position: relative;
+    display: inline-block;
+    width: 22px;
+    height: 16px;
+}
+
+.bubbles i {
+    position: absolute;
+    bottom: 0;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0;
+    animation: bubble 1.6s linear infinite;
+}
+
+.bubbles i:nth-child(1) { left: 2px;  animation-delay: 0s; }
+.bubbles i:nth-child(2) { left: 9px;  animation-delay: 0.5s; }
+.bubbles i:nth-child(3) { left: 15px; animation-delay: 1s; }
+
+@keyframes bubble {
+    0%   { transform: translateY(0) scale(0.6); opacity: 0; }
+    25%  { opacity: 0.9; }
+    100% { transform: translateY(-14px) scale(1); opacity: 0; }
+}
+
+.lc-sched {
+    list-style: none;
+    padding: 0;
+    margin: 0.4rem 0 0;
+    font-size: 0.78rem;
+    opacity: 0.85;
+}
+
+.lc-sched li { margin: 0.15rem 0; }
+
+/* ==============
+   SPECS
+   ============== */
+
+.specs {
+    max-width: 1100px;
+    margin: 3rem auto 0;
+}
+
+.specs-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 0.6rem;
+}
+
+.specs-list li {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: baseline;
+    background: linear-gradient(135deg, rgba(17, 24, 39, 0.9), rgba(30, 12, 60, 0.92));
+    border-radius: 10px;
+    padding: 0.7rem 0.95rem;
+    box-shadow: 0 0 0 1px rgba(255, 105, 180, 0.2);
+}
+
+.spec-k {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #4deeea;
+    white-space: nowrap;
+}
+
+.spec-v {
+    font-size: 0.9rem;
+    color: #f9eaff;
+    text-align: right;
+}
+
+/* ==============
    FLORA & FAUNA
    ============== */
 
