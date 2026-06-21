@@ -72,6 +72,12 @@
         <div class="dn-notice" id="notice" style="display:none"></div>
       </div>
     </div>
+    <div class="dn-legend">
+      <span><b style="color:#ffd86b">日</b> daytime</span>
+      <span><b style="color:#ff6ac1">黄昏</b> twilight</span>
+      <span><b style="color:#4deeea">夜</b> night</span>
+      <span><b style="color:#b8a9ff">朝</b> morning</span>
+    </div>
   </section>
 
   <!-- Interesting flora & fauna -->
@@ -345,7 +351,8 @@ function makeLineChart(ctx, labels, data, borderColor, backgroundColor) {
         fill: true,
         tension: 0.3,
         pointRadius: 0,
-        spanGaps: false
+        spanGaps: false,
+        borderDash: [2, 3]
       }]
     },
     options: {

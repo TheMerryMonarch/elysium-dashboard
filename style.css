@@ -372,6 +372,16 @@ main {
 }
 @keyframes flash { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
 
+.dn-legend {
+    display: flex;
+    gap: 22px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+    font-size: 13px;
+    color: #cbb8e0;
+}
+.dn-legend b { font-weight: 700; margin-right: 6px; }
+
 /* ==============
    SPECS
    ============== */
