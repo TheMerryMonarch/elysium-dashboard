@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
 
 <body>
@@ -60,26 +62,30 @@
 
   </div>
 
-  <!-- Day / night light cycle -->
+  <!-- Day / night light cycle (retro LED) -->
   <section class="lightcycle">
-    <div class="lc-card lc-night" id="lc-card">
-      <div class="lc-sky">
-<pre class="lc-sun"> \  |  /
--- (  ) --
- /  |  \</pre>
-        <div class="lc-horizon"></div>
-<pre class="lc-moon">  _
- ( `.
-  )  )
- (_.'</pre>
+    <div class="lc-panel">
+      <div class="lc-head">
+        <span class="lc-icon" id="lc-icon">
+          <svg class="px-sun" viewBox="0 0 11 11" shape-rendering="crispEdges"><g fill="currentColor"><rect x="4" y="3" width="3" height="5"/><rect x="3" y="4" width="5" height="3"/><rect x="5" y="0" width="1" height="2"/><rect x="5" y="9" width="1" height="2"/><rect x="0" y="5" width="2" height="1"/><rect x="9" y="5" width="2" height="1"/><rect x="1" y="1" width="1" height="1"/><rect x="9" y="1" width="1" height="1"/><rect x="1" y="9" width="1" height="1"/><rect x="9" y="9" width="1" height="1"/></g></svg>
+          <svg class="px-moon" viewBox="0 0 11 11" shape-rendering="crispEdges"><g fill="currentColor"><rect x="3" y="1" width="4" height="1"/><rect x="2" y="2" width="2" height="1"/><rect x="2" y="3" width="1" height="5"/><rect x="2" y="8" width="2" height="1"/><rect x="3" y="9" width="4" height="1"/></g></svg>
+        </span>
+        <span class="lc-phase" id="lc-phase">—</span>
+        <span class="lc-co2" id="lc-co2">CO<span class="sub">2</span>&nbsp;FLOWING <span class="lc-bub"><i></i><i></i><i></i></span></span>
       </div>
-      <div class="lc-info">
-        <div class="lc-phase" id="lc-phase">—</div>
-        <div class="lc-co2" id="lc-co2"><span class="bubbles"><i></i><i></i><i></i></span>CO₂ flowing</div>
-        <ul class="lc-sched">
-          <li>Lights&nbsp; 1:00 PM – 9:00 PM CT</li>
-          <li>CO₂&nbsp; 12:30 PM – 8:30 PM CT</li>
-        </ul>
+      <div class="lc-bar">
+        <div class="lc-seg lc-night"    style="left:0%;     width:50%"></div>
+        <div class="lc-seg lc-morning"  style="left:50%;    width:4.17%"></div>
+        <div class="lc-seg lc-day"      style="left:54.17%; width:29.16%"></div>
+        <div class="lc-seg lc-twilight" style="left:83.33%; width:4.17%"></div>
+        <div class="lc-seg lc-night"    style="left:87.5%;  width:12.5%"></div>
+        <div class="lc-hand" id="lc-hand" style="left:0%"></div>
+      </div>
+      <div class="lc-axis">
+        <span class="lc-mark" style="left:50%">12P</span>
+        <span class="lc-mark" style="left:54.17%">1P</span>
+        <span class="lc-mark" style="left:83.33%">8P</span>
+        <span class="lc-mark" style="left:87.5%">9P</span>
       </div>
     </div>
   </section>
@@ -406,7 +412,7 @@ async function updateCharts() {
 ======================= */
 const BIOTA = [
   {
-    name: "Amano Shrimp", nickname: "Melvin", wiki: "Caridina multidentata",
+    name: "Amano Shrimp", nickname: "melvin", wiki: "Caridina multidentata",
     type: "Shrimp", count: 1,
     blurb: "A hardy algae-eating shrimp prized in planted tanks for its appetite and peaceful temperament. Larger than Neocaridina, and can't breed in freshwater, so the population stays put."
   },
@@ -446,20 +452,19 @@ async function renderBiota() {
   for (const item of BIOTA) {
     const card = document.createElement("div");
     card.className = "biota-card";
-    const countHtml = (item.count != null) ? `<span class="biota-count">×${item.count}</span>` : "";
     card.innerHTML = `
       <div class="biota-photo"></div>
       <div class="biota-body">
         <div class="biota-head">
           <span class="biota-name"></span>
           <span class="biota-type"></span>
-          ${countHtml}
         </div>
         <p class="biota-blurb">Loading…</p>
       </div>`;
-    // set text via textContent to avoid HTML injection from the list
-    const nameStr = item.nickname ? `${item.name} “${item.nickname}”` : item.name;
-    card.querySelector(".biota-name").textContent = nameStr;
+    // build the title: name + count + nickname (text only, no HTML injection)
+    const countStr = (item.count != null) ? ` x${item.count}` : "";
+    const nickStr = item.nickname ? ` (answers to "${item.nickname}")` : "";
+    card.querySelector(".biota-name").textContent = item.name + countStr + nickStr;
     card.querySelector(".biota-type").textContent = item.type;
     grid.appendChild(card);
 
@@ -491,25 +496,33 @@ function centralNowMinutes() {
 }
 
 function updateLightCycle() {
-  const card = document.getElementById("lc-card");
-  if (!card) return;
+  const hand = document.getElementById("lc-hand");
+  if (!hand) return;
   const t = centralNowMinutes();
   const LIGHTS_ON = 13 * 60, LIGHTS_OFF = 21 * 60;        // 1:00pm – 9:00pm CT
   const MORNING = LIGHTS_ON - 60, TWILIGHT = LIGHTS_OFF - 60;
   const CO2_ON = 12 * 60 + 30, CO2_OFF = 20 * 60 + 30;    // 12:30pm – 8:30pm CT
 
-  let phase, label;
-  if (t >= MORNING && t < LIGHTS_ON)        { phase = "morning";  label = "Morning"; }
-  else if (t >= LIGHTS_ON && t < TWILIGHT)  { phase = "day";      label = "Daytime"; }
-  else if (t >= TWILIGHT && t < LIGHTS_OFF) { phase = "twilight"; label = "Twilight"; }
-  else                                      { phase = "night";    label = "Night"; }
+  let label, color;
+  if (t >= MORNING && t < LIGHTS_ON)        { label = "MORNING";  color = "#bcd0e6"; }
+  else if (t >= LIGHTS_ON && t < TWILIGHT)  { label = "DAYTIME";  color = "#f2c63f"; }
+  else if (t >= TWILIGHT && t < LIGHTS_OFF) { label = "TWILIGHT"; color = "#df6a26"; }
+  else                                      { label = "NIGHT";    color = "#9fb0e0"; }
 
   const lightsOn = (t >= LIGHTS_ON && t < LIGHTS_OFF);
-  card.className = "lc-card lc-" + phase + (lightsOn ? " lights-on" : "");
-  document.getElementById("lc-phase").textContent = label;
 
+  // move the clock handle to the current time over a 24h bar
+  hand.style.left = (t / 1440 * 100) + "%";
+
+  const phaseEl = document.getElementById("lc-phase");
+  phaseEl.textContent = label;
+  phaseEl.style.color = color;
+
+  document.getElementById("lc-icon").classList.toggle("is-night", !lightsOn);
+
+  // CO2 line only appears while CO2 is actually flowing
   const co2 = document.getElementById("lc-co2");
-  co2.style.display = (t >= CO2_ON && t < CO2_OFF) ? "" : "none";  // only show while CO2 is flowing
+  co2.style.display = (t >= CO2_ON && t < CO2_OFF) ? "" : "none";
 }
 
 /* =======================
