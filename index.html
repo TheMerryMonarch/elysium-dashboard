@@ -37,6 +37,7 @@
       <div class="dn">
         <span class="dn-kanji" id="kanji">日</span>
         <div class="dn-right">
+          <div class="dn-time" id="time">—<span class="dn-ct">CT</span></div>
           <span class="dn-co2" id="co2" style="display:none">
             <span class="dn-bub"><i></i><i></i><i></i></span>
             <span class="dn-co2-txt">CO2: online</span>
@@ -45,10 +46,10 @@
         </div>
       </div>
       <div class="dn-legend">
-        <span style="color:#ffd86b">日</span>
-        <span style="color:#ff6ac1">黄昏</span>
-        <span style="color:#4deeea">夜</span>
-        <span style="color:#b8a9ff">朝</span>
+        <span><b style="color:#ffd86b">日</b> daytime</span>
+        <span><b style="color:#ff6ac1">黄昏</b> twilight</span>
+        <span><b style="color:#4deeea">夜</b> night</span>
+        <span><b style="color:#b8a9ff">朝</b> morning</span>
       </div>
 
       <!-- Gear / specs -->
@@ -527,6 +528,12 @@ function sunriseCentralMinutes(date) {
   return centralMinutesOf(new Date(Date.UTC(y, mo, da) + tmin * 60000));
 }
 
+function tickClock() {
+  const el = document.getElementById("time");
+  if (!el) return;
+  el.innerHTML = new Date().toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" }) + '<span class="dn-ct">CT</span>';
+}
+
 function updateLightCycle() {
   const k = document.getElementById("kanji");
   if (!k) return;
@@ -581,10 +588,12 @@ window.addEventListener("DOMContentLoaded", () => {
   updateCharts();
   renderBiota();
   updateLightCycle();
+  tickClock();
 
   setInterval(updateDashboard, 5000);    // live values
   setInterval(updateCharts, 60000);      // charts refresh every 60s
   setInterval(updateLightCycle, 30000);  // light/CO2 phase every 30s
+  setInterval(tickClock, 1000);          // live clock
 });
 </script>
 
