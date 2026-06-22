@@ -30,87 +30,85 @@
     </div>
   </section>
 
-  <div class="sensor-grid">
+  <div class="compact-row">
+    <div class="compact-left">
 
-    <!-- Temperature Panel -->
-    <section class="sensor-panel">
-      <div class="sensor-card">
-        <div class="sensor-name" id="temp-label">Temperature</div>
-        <div id="temp-value" class="sensor-value">--</div>
+      <!-- Day / night -->
+      <div class="dn">
+        <span class="dn-kanji" id="kanji">日</span>
+        <div class="dn-right">
+          <span class="dn-co2" id="co2" style="display:none">
+            <span class="dn-bub"><i></i><i></i><i></i></span>
+            <span class="dn-co2-txt">CO2: online</span>
+          </span>
+          <div class="dn-notice" id="notice" style="display:none"></div>
+        </div>
+      </div>
+      <div class="dn-legend">
+        <span><b style="color:#ffd86b">日</b> daytime</span>
+        <span><b style="color:#ff6ac1">黄昏</b> twilight</span>
+        <span><b style="color:#4deeea">夜</b> night</span>
+        <span><b style="color:#b8a9ff">朝</b> morning</span>
+      </div>
+
+      <!-- Gear / specs -->
+      <div class="specs-grid">
+        <div class="spec">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="1.5"/><path d="M3 10c2.5 1.6 4.5-1.4 7.5 0s5 1.6 7.5 0"/></svg>
+          <div><b>UNS 90P</b><span>Tank</span></div>
+        </div>
+        <div class="spec">
+          <svg style="width:38px;height:38px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.4C15.4 5.4 18 7.9 17.6 11 17.4 12.3 16.2 12.7 15.6 11.8"/><path d="M12 5.4C15.4 5.4 18 7.9 17.6 11 17.4 12.3 16.2 12.7 15.6 11.8" transform="rotate(60 12 12)"/><path d="M12 5.4C15.4 5.4 18 7.9 17.6 11 17.4 12.3 16.2 12.7 15.6 11.8" transform="rotate(120 12 12)"/><path d="M12 5.4C15.4 5.4 18 7.9 17.6 11 17.4 12.3 16.2 12.7 15.6 11.8" transform="rotate(180 12 12)"/><path d="M12 5.4C15.4 5.4 18 7.9 17.6 11 17.4 12.3 16.2 12.7 15.6 11.8" transform="rotate(240 12 12)"/><path d="M12 5.4C15.4 5.4 18 7.9 17.6 11 17.4 12.3 16.2 12.7 15.6 11.8" transform="rotate(300 12 12)"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/></svg>
+          <div><b>Oase BioMaster Thermo</b><span>Filter</span></div>
+        </div>
+        <div class="spec">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16"/><path d="M12 19v-7"/><path d="M12 13c-2 0-3.4-1.2-3.6-3.6C10.6 9.6 12 10.8 12 13"/><path d="M12 14c1.9 0 3.4-1.2 3.6-3.4C13.4 10.8 12 12 12 14"/></svg>
+          <div><b>UNS Controsoil</b><span>Substrate</span></div>
+        </div>
+        <div class="spec">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 19 L6.6 10.5 L8.2 5.5 L10 8 L9.6 19 Z"/><path d="M8.2 5.5 L8.3 12"/><path d="M10.6 19 L10.8 13.5 L12.2 10.5 L13.6 13 L13.4 19 Z"/><path d="M14.8 19 L15 16 L16.2 14.3 L17.4 16.2 L17.2 19 Z"/><path d="M4 19 H20"/></svg>
+          <div><b>Frodo Stone</b><span>Hardscape</span></div>
+        </div>
+        <div class="spec">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10a4 4 0 0 1 8 0v8.4A1.6 1.6 0 0 1 14.4 20h-4.8A1.6 1.6 0 0 1 8 18.4z"/><rect x="10.6" y="3" width="2.8" height="3" rx="0.6"/><path d="M8.6 13.5h6.8"/></svg>
+          <div><b>UNS 10&nbsp;lb CO₂</b><span>Inline atomizer</span></div>
+        </div>
+        <div class="spec">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5V6"/><path d="M6.5 12c0-5.5 11-5.5 11 0"/><path d="M6.5 12h11"/><path d="M10 15a2 2 0 0 0 4 0"/></svg>
+          <div><b>ONF Pendant</b><span>Lighting</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="compact-right">
+      <!-- Temperature -->
+      <section class="sensor-panel">
+        <div class="sensor-head">
+          <span class="sensor-name" id="temp-label">Temperature</span>
+          <span id="temp-value" class="sensor-value">--</span>
+        </div>
         <div class="sensor-unit" id="temp-unit">°F</div>
         <div id="temp-last-updated" class="sensor-subtext">Last updated —</div>
-      </div>
-      <div class="chart-placeholder">
-        <canvas id="temp-chart"></canvas>
-      </div>
-    </section>
+        <div class="chart-placeholder"><canvas id="temp-chart"></canvas></div>
+      </section>
 
-    <!-- pH Panel -->
-    <section class="sensor-panel">
-      <div class="sensor-card">
-        <div class="sensor-name" id="ph-label">pH</div>
-        <div id="ph-value" class="sensor-value">--</div>
+      <!-- pH -->
+      <section class="sensor-panel">
+        <div class="sensor-head">
+          <span class="sensor-name" id="ph-label">pH</span>
+          <span id="ph-value" class="sensor-value">--</span>
+        </div>
         <div class="sensor-unit" id="ph-unit"></div>
         <div id="ph-last-updated" class="sensor-subtext">Last updated —</div>
-      </div>
-      <div class="chart-placeholder">
-        <canvas id="ph-chart"></canvas>
-      </div>
-    </section>
-
+        <div class="chart-placeholder"><canvas id="ph-chart"></canvas></div>
+      </section>
+    </div>
   </div>
-
-  <!-- Day / night -->
-  <section class="lightcycle">
-    <div class="dn">
-      <span class="dn-kanji" id="kanji">日</span>
-      <div class="dn-right">
-        <span class="dn-co2" id="co2" style="display:none">
-          <span class="dn-bub"><i></i><i></i><i></i></span>
-          <span class="dn-co2-txt">CO2: online</span>
-        </span>
-        <div class="dn-notice" id="notice" style="display:none"></div>
-      </div>
-    </div>
-    <div class="dn-legend">
-      <span><b style="color:#ffd86b">日</b> daytime</span>
-      <span><b style="color:#ff6ac1">黄昏</b> twilight</span>
-      <span><b style="color:#4deeea">夜</b> night</span>
-      <span><b style="color:#b8a9ff">朝</b> morning</span>
-    </div>
-  </section>
 
   <!-- Interesting flora & fauna -->
   <section class="biota">
     <h2 class="section-title" id="biota-title">Interesting Flora &amp; Fauna</h2>
     <div class="biota-grid" id="biota-grid"></div>
-  </section>
-
-  <!-- Gear / specs -->
-  <section class="specs">
-    <h2 class="section-title" id="specs-title">Specs</h2>
-    <div class="specs-grid">
-      <div class="spec">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="1.5"/><path d="M3 10c2.5 1.6 4.5-1.4 7.5 0s5 1.6 7.5 0"/></svg>
-        <div><b>UNS 90P</b><span>Tank</span></div>
-      </div>
-      <div class="spec">
-        <svg style="width:38px;height:38px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.4C15.4 5.4 18 7.9 17.6 11 17.4 12.3 16.2 12.7 15.6 11.8"/><path d="M12 5.4C15.4 5.4 18 7.9 17.6 11 17.4 12.3 16.2 12.7 15.6 11.8" transform="rotate(60 12 12)"/><path d="M12 5.4C15.4 5.4 18 7.9 17.6 11 17.4 12.3 16.2 12.7 15.6 11.8" transform="rotate(120 12 12)"/><path d="M12 5.4C15.4 5.4 18 7.9 17.6 11 17.4 12.3 16.2 12.7 15.6 11.8" transform="rotate(180 12 12)"/><path d="M12 5.4C15.4 5.4 18 7.9 17.6 11 17.4 12.3 16.2 12.7 15.6 11.8" transform="rotate(240 12 12)"/><path d="M12 5.4C15.4 5.4 18 7.9 17.6 11 17.4 12.3 16.2 12.7 15.6 11.8" transform="rotate(300 12 12)"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/></svg>
-        <div><b>Oase BioMaster Thermo</b><span>Filter</span></div>
-      </div>
-      <div class="spec">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16"/><path d="M12 19v-7"/><path d="M12 13c-2 0-3.4-1.2-3.6-3.6C10.6 9.6 12 10.8 12 13"/><path d="M12 14c1.9 0 3.4-1.2 3.6-3.4C13.4 10.8 12 12 12 14"/></svg>
-        <div><b>UNS Controsoil</b><span>Substrate</span></div>
-      </div>
-      <div class="spec">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 19 L6.6 10.5 L8.2 5.5 L10 8 L9.6 19 Z"/><path d="M8.2 5.5 L8.3 12"/><path d="M10.6 19 L10.8 13.5 L12.2 10.5 L13.6 13 L13.4 19 Z"/><path d="M14.8 19 L15 16 L16.2 14.3 L17.4 16.2 L17.2 19 Z"/><path d="M4 19 H20"/></svg>
-        <div><b>Frodo Stone</b><span>Hardscape</span></div>
-      </div>
-      <div class="spec">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10a4 4 0 0 1 8 0v8.4A1.6 1.6 0 0 1 14.4 20h-4.8A1.6 1.6 0 0 1 8 18.4z"/><rect x="10.6" y="3" width="2.8" height="3" rx="0.6"/><path d="M8.6 13.5h6.8"/></svg>
-        <div><b>UNS 10&nbsp;lb CO₂</b><span>Inline atomizer</span></div>
-      </div>
-    </div>
   </section>
 </main>
 
