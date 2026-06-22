@@ -346,11 +346,11 @@ function makeLineChart(ctx, labels, data, borderColor, backgroundColor) {
         data,
         borderColor,
         backgroundColor,
-        fill: true,
+        fill: false,
         tension: 0.3,
         pointRadius: 0,
         spanGaps: false,
-        borderDash: [2, 3]
+        borderWidth: 2.5
       }]
     },
     options: {
@@ -389,12 +389,12 @@ async function updateCharts() {
   const phCtx   = document.getElementById("ph-chart")?.getContext("2d");
 
   if (tempCtx) {
-    if (!tempChart) tempChart = makeLineChart(tempCtx, labels, tempData, "rgba(255, 106, 193, 0.95)", "rgba(255, 106, 193, 0.18)");
+    if (!tempChart) tempChart = makeLineChart(tempCtx, labels, tempData, "#ff4d4d", "#ff4d4d");
     else { tempChart.data.labels = labels; tempChart.data.datasets[0].data = tempData; tempChart.update(); }
   }
 
   if (phCtx) {
-    if (!phChart) phChart = makeLineChart(phCtx, labels, phData, "rgba(77, 238, 234, 0.95)", "rgba(77, 238, 234, 0.16)");
+    if (!phChart) phChart = makeLineChart(phCtx, labels, phData, "#ffd86b", "#ffd86b");
     else { phChart.data.labels = labels; phChart.data.datasets[0].data = phData; phChart.update(); }
   }
 
