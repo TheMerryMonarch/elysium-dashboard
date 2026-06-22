@@ -45,10 +45,10 @@
         </div>
       </div>
       <div class="dn-legend">
-        <span><b style="color:#ffd86b">日</b> daytime</span>
-        <span><b style="color:#ff6ac1">黄昏</b> twilight</span>
-        <span><b style="color:#4deeea">夜</b> night</span>
-        <span><b style="color:#b8a9ff">朝</b> morning</span>
+        <span style="color:#ffd86b">日</span>
+        <span style="color:#ff6ac1">黄昏</span>
+        <span style="color:#4deeea">夜</span>
+        <span style="color:#b8a9ff">朝</span>
       </div>
 
       <!-- Gear / specs -->
@@ -501,21 +501,49 @@ function centralNowMinutes() {
   return h * 60 + get("minute");
 }
 
-const NOTICES = { 720: "The shadows retreat", 780: "The sun rises in Elysium", 1200: "The day grows long", 1260: "Night falls in Elysium..." };
+// Tank location — Chicago, IL (latitude, west-positive longitude)
+const TANK_LAT = 41.8781, TANK_LNG_W = 87.6298;
+
+// minutes-of-day (Central time) for a given Date
+function centralMinutesOf(d) {
+  const p = new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(d);
+  const get = (t) => parseInt(p.find(x => x.type === t).value, 10);
+  let h = get("hour"); if (h === 24) h = 0;
+  return h * 60 + get("minute");
+}
+
+// Sunrise for `date`, as minutes-past-midnight Central time (NOAA solar algorithm)
+function sunriseCentralMinutes(date) {
+  const rad = Math.PI / 180;
+  const y = date.getUTCFullYear(), mo = date.getUTCMonth(), da = date.getUTCDate();
+  const doy = Math.floor((Date.UTC(y, mo, da) - Date.UTC(y, 0, 0)) / 86400000);
+  const g = (2 * Math.PI / 365) * (doy - 1);
+  const eq = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
+  const dec = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g) - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
+  let cosH = Math.cos(90.833 * rad) / (Math.cos(TANK_LAT * rad) * Math.cos(dec)) - Math.tan(TANK_LAT * rad) * Math.tan(dec);
+  cosH = Math.max(-1, Math.min(1, cosH));
+  const HA = Math.acos(cosH) / rad;
+  const tmin = 720 + 4 * (TANK_LNG_W - HA) - eq;       // minutes past 00:00 UTC
+  return centralMinutesOf(new Date(Date.UTC(y, mo, da) + tmin * 60000));
+}
 
 function updateLightCycle() {
   const k = document.getElementById("kanji");
   if (!k) return;
   const t = centralNowMinutes();
-  const ON = 13 * 60, OFF = 21 * 60;                   // lights 1:00pm – 9:00pm CT
-  const MORNING = ON - 60, TWILIGHT = OFF - 60;
+  const SR = sunriseCentralMinutes(new Date());        // today's sunrise (Central minutes)
+
+  const M_START = SR - 60;          // morning: 1h before sunrise
+  const D_START = SR + 120;         // daytime: 2h after sunrise
+  const TW_START = 20 * 60;         // twilight: 8:00pm CT
+  const N_START = 21 * 60;          // night: 9:00pm CT
   const CO2_ON = 12 * 60 + 30, CO2_OFF = 20 * 60 + 30; // CO2 12:30pm – 8:30pm CT
 
   let kanji, color;
-  if (t >= MORNING && t < ON)        { kanji = "朝";   color = "#b8a9ff"; }
-  else if (t >= ON && t < TWILIGHT)  { kanji = "日";   color = "#ffd86b"; }
-  else if (t >= TWILIGHT && t < OFF) { kanji = "黄昏"; color = "#ff6ac1"; }
-  else                               { kanji = "夜";   color = "#4deeea"; }
+  if (t >= M_START && t < D_START)       { kanji = "朝";   color = "#b8a9ff"; }
+  else if (t >= D_START && t < TW_START) { kanji = "日";   color = "#ffd86b"; }
+  else if (t >= TW_START && t < N_START) { kanji = "黄昏"; color = "#ff6ac1"; }
+  else                                   { kanji = "夜";   color = "#4deeea"; }
 
   k.textContent = kanji;
   k.style.color = color;
@@ -525,10 +553,16 @@ function updateLightCycle() {
   document.getElementById("co2").style.display = (t >= CO2_ON && t < CO2_OFF) ? "" : "none";
 
   // transition notice flashes for its one minute, in the new phase's color
+  const NOTICES = [
+    [M_START,  "The shadows retreat"],
+    [D_START,  "The sun rises in Elysium"],
+    [TW_START, "The day grows long"],
+    [N_START,  "Night falls in Elysium..."]
+  ];
+  const hit = NOTICES.find(pair => pair[0] === t);
   const notice = document.getElementById("notice");
-  const msg = NOTICES[t];
-  if (msg) {
-    notice.textContent = msg;
+  if (hit) {
+    notice.textContent = hit[1];
     notice.style.color = color;
     notice.style.textShadow = `0 0 11px ${color}`;
     notice.style.display = "";

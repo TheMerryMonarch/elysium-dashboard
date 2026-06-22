@@ -347,13 +347,12 @@ main {
 
 .dn-legend {
     display: flex;
-    gap: 22px;
+    gap: 18px;
     flex-wrap: wrap;
     margin-top: 18px;
-    font-size: 13px;
-    color: #cbb8e0;
+    font-size: 18px;
+    font-weight: 700;
 }
-.dn-legend b { font-weight: 700; margin-right: 6px; }
 
 /* ==============
    SPECS
