@@ -92,11 +92,17 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5V6"/><path d="M6.5 12c0-5.5 11-5.5 11 0"/><path d="M6.5 12h11"/><path d="M10 15a2 2 0 0 0 4 0"/></svg>
           <div><b>ONF Pendant</b><span>Lighting</span></div>
         </div>
-        <div class="spec">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="9" r="2.3"/><circle cx="15.5" cy="7.5" r="1.9"/><circle cx="12" cy="14.5" r="2.7"/><path d="M4.5 20c5-2 10-2 15 0"/></svg>
-          <div><b><span id="shrimp-pop">--</span> shrimp</b><span>Blue Jelly Neocaridina</span></div>
-        </div>
       </div>
+
+      <!-- Population tile (manual count) -->
+      <section class="sensor-panel pop-panel">
+        <div class="sensor-head">
+          <span class="sensor-name" id="pop-label">Population</span>
+          <span id="pop-value" class="sensor-value">--</span>
+        </div>
+        <div class="sensor-unit">Blue Jelly Neocaridina</div>
+        <div class="sensor-subtext">Hand-counted &middot; updated manually</div>
+      </section>
     </div>
 
     <div class="compact-right">
@@ -484,8 +490,9 @@ const SHRIMP_POPULATION = 35;
 const BIOTA = [
   {
     name: "Blue Jelly Shrimp", wiki: "Neocaridina davidi",
-    type: "Shrimp", count: SHRIMP_POPULATION,
-    blurb: "A selectively bred sky-blue morph of the dwarf cherry shrimp (Neocaridina davidi). Hardy, peaceful biofilm and algae grazers that breed readily in freshwater; the colony count here is tallied by hand."
+    type: "Shrimp", count: null,
+    img: "blue_jelly.jpg",
+    blurb: "A selectively bred sky-blue morph of the dwarf cherry shrimp (Neocaridina davidi). Hardy, peaceful biofilm and algae grazers that breed readily in freshwater."
   },
   {
     name: "Monte Carlo", wiki: "Micranthemum tweediei",
@@ -681,7 +688,7 @@ function updateLightCycle() {
 window.addEventListener("DOMContentLoaded", () => {
   applyLanguage();
 
-  const pop = document.getElementById("shrimp-pop");
+  const pop = document.getElementById("pop-value");
   if (pop) pop.textContent = SHRIMP_POPULATION;
 
   updateDashboard();
