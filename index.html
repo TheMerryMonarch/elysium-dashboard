@@ -19,7 +19,9 @@
 
 <main>
 
-  <!-- Live tank stream -->
+  <!-- Live tank stream + MO/TH/ER, side by side on wide screens -->
+  <div class="stream-row">
+
   <section class="stream-panel">
     <div class="stream-header">
       <div class="stream-label">Live Window</div>
@@ -29,6 +31,18 @@
       <video id="elysium-stream" controls autoplay muted playsinline></video>
     </div>
   </section>
+
+  <section class="mother-panel">
+    <div class="mother-head">
+      <span class="mother-title">MO/TH/ER</span>
+      <span class="mother-sub">MASTER ORGANISM TELEMETRY HUB &amp; ECOSYSTEM REGULATOR</span>
+    </div>
+    <div class="mother-screen" id="mother-screen">
+      <div class="mother-line">INTERFACE 2037 READY FOR INQUIRY<span class="mother-cursor"></span></div>
+    </div>
+  </section>
+
+  </div>
 
   <div class="compact-row">
     <div class="compact-left">
@@ -103,19 +117,19 @@
         <div id="ph-last-updated" class="sensor-subtext">Last updated —</div>
         <div class="chart-placeholder"><canvas id="ph-chart"></canvas></div>
       </section>
+
+      <!-- Dissolved oxygen -->
+      <section class="sensor-panel">
+        <div class="sensor-head">
+          <span class="sensor-name" id="do-label">Dissolved Oxygen</span>
+          <span id="do-value" class="sensor-value">--</span>
+        </div>
+        <div class="sensor-unit" id="do-unit">mg/L</div>
+        <div id="do-last-updated" class="sensor-subtext">Last updated —</div>
+        <div class="chart-placeholder"><canvas id="do-chart"></canvas></div>
+      </section>
     </div>
   </div>
-
-  <!-- MO/TH/ER narration feed -->
-  <section class="mother-panel">
-    <div class="mother-head">
-      <span class="mother-title">MO/TH/ER</span>
-      <span class="mother-sub">MASTER ORGANISM TELEMETRY HUB &amp; ECOSYSTEM REGULATOR</span>
-    </div>
-    <div class="mother-screen" id="mother-screen">
-      <div class="mother-line">INTERFACE 2037 READY FOR INQUIRY<span class="mother-cursor"></span></div>
-    </div>
-  </section>
 
   <!-- Interesting flora & fauna -->
   <section class="biota">
@@ -209,6 +223,7 @@ const translations = {
     stream: "Live Window",
     temp: "Temperature",
     ph: "pH",
+    doLabel: "Dissolved Oxygen",
     biota: "Interesting Flora & Fauna",
     specs: "Specs",
     tempUnit: "°F",
@@ -220,6 +235,7 @@ const translations = {
     stream: "ライブ映像",
     temp: "水温",
     ph: "pH",
+    doLabel: "溶存酸素",
     biota: "興味深い動植物",
     specs: "機材",
     tempUnit: "°F",
@@ -246,6 +262,9 @@ function applyLanguage() {
 
   document.getElementById("ph-label").textContent = t.ph;
   document.getElementById("ph-unit").textContent = t.phUnit;
+
+  const dl = document.getElementById("do-label");
+  if (dl) dl.textContent = t.doLabel;
 
   document.querySelector(".lang-toggle").textContent = t.button;
 }
@@ -283,6 +302,19 @@ async function updateDashboard() {
   if (phEl) {
     phEl.textContent = (phVal != null && phVal !== "") ? Number(phVal).toFixed(2) : "--";
   }
+  // Dissolved oxygen (mg/L headline, % sat alongside — always both)
+  const doVal = data.do_mg_per_l ?? data.do_mg_l;
+  const doEl = document.getElementById("do-value");
+  if (doEl) doEl.textContent = (doVal != null && doVal !== "") ? Number(doVal).toFixed(2) : "--";
+
+  const doPct = data.do_percent;
+  const doUnitEl = document.getElementById("do-unit");
+  if (doUnitEl) {
+    doUnitEl.textContent = (doPct != null && doPct !== "")
+      ? `mg/L · ${Number(doPct).toFixed(1)}% sat`
+      : "mg/L";
+  }
+
   // Last updated lines (one timestamp powers all three)
   if (data.timestamp) {
     const s = secondsAgo(data.timestamp);
@@ -292,8 +324,10 @@ async function updateDashboard() {
 
     const tlu = document.getElementById("temp-last-updated");
     const plu = document.getElementById("ph-last-updated");
+    const dlu = document.getElementById("do-last-updated");
     if (tlu) tlu.textContent = line;
     if (plu) plu.textContent = line;
+    if (dlu) dlu.textContent = line;
   }
 
   // Debug (optional)
@@ -347,7 +381,7 @@ function seriesFromBuckets(hourKeys, buckets) {
 /* =======================
    CHARTS
 ======================= */
-let tempChart, phChart;
+let tempChart, phChart, doChart;
 
 function makeLineChart(ctx, labels, data, borderColor, backgroundColor) {
   return new Chart(ctx, {
@@ -394,11 +428,18 @@ async function updateCharts() {
     r.ph ?? r.pH ?? r.ph_value
   );
 
+  const doBuckets = avgBucketsFromHistory(history, r => {
+    const v = r.do_mg_per_l ?? r.do_mg_l;
+    return v ? v : undefined;  // 0.0 = the old broken push mapping, not a reading
+  });
+
   const tempData = seriesFromBuckets(hourKeys, tempBuckets);
   const phData   = seriesFromBuckets(hourKeys, phBuckets);
+  const doData   = seriesFromBuckets(hourKeys, doBuckets);
 
   const tempCtx = document.getElementById("temp-chart")?.getContext("2d");
   const phCtx   = document.getElementById("ph-chart")?.getContext("2d");
+  const doCtx   = document.getElementById("do-chart")?.getContext("2d");
 
   if (tempCtx) {
     if (!tempChart) tempChart = makeLineChart(tempCtx, labels, tempData, "#ff4d4d", "#ff4d4d");
@@ -408,6 +449,11 @@ async function updateCharts() {
   if (phCtx) {
     if (!phChart) phChart = makeLineChart(phCtx, labels, phData, "#ffd86b", "#ffd86b");
     else { phChart.data.labels = labels; phChart.data.datasets[0].data = phData; phChart.update(); }
+  }
+
+  if (doCtx) {
+    if (!doChart) doChart = makeLineChart(doCtx, labels, doData, "#6fd3ff", "#6fd3ff");
+    else { doChart.data.labels = labels; doChart.data.datasets[0].data = doData; doChart.update(); }
   }
 
   // Debug: prove we have non-null points

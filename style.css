@@ -487,8 +487,28 @@ main {
    MO/TH/ER PANEL
    ============== */
 
+/* Stream + MO/TH/ER share one row on wide screens; the video keeps its full
+   1100px and MO/TH/ER fills the remaining column at matching height. */
+.stream-row {
+    max-width: 1560px;
+    margin: 0 auto 2.4rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1100px) minmax(300px, 1fr);
+    gap: 22px;
+    align-items: stretch;
+}
+
+.stream-row .stream-panel {
+    max-width: none;
+    margin: 0;
+    min-width: 0;
+}
+
 .mother-panel {
-    margin-top: 1.4rem;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    margin-top: 2.05rem;   /* aligns panel top with the video frame, below the stream header */
     border: 1px solid rgba(109, 255, 143, 0.35);
     border-radius: 14px;
     background: linear-gradient(160deg, rgba(2, 16, 7, 0.97), rgba(5, 26, 13, 0.98));
@@ -500,9 +520,8 @@ main {
 
 .mother-head {
     display: flex;
-    align-items: baseline;
-    gap: 0.9rem;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 0.15rem;
     padding: 0.7rem 1.1rem;
     border-bottom: 1px solid rgba(109, 255, 143, 0.25);
 }
@@ -530,7 +549,8 @@ main {
     font-size: 0.85rem;
     line-height: 1.75;
     padding: 0.9rem 1.1rem 1rem;
-    max-height: 230px;
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
     text-shadow: 0 0 6px rgba(109, 255, 143, 0.45);
     background-image: repeating-linear-gradient(
@@ -562,4 +582,24 @@ main {
 
 @media (prefers-reduced-motion: reduce) {
     .mother-cursor { animation: none; }
+}
+
+/* Narrow screens: stack exactly like the old layout; video never shrinks */
+@media (max-width: 1150px) {
+    .stream-row {
+        grid-template-columns: 1fr;
+    }
+    .mother-panel {
+        margin-top: 0.9rem;
+    }
+    .mother-head {
+        flex-direction: row;
+        align-items: baseline;
+        gap: 0.9rem;
+        flex-wrap: wrap;
+    }
+    .mother-screen {
+        flex: none;
+        max-height: 230px;
+    }
 }
