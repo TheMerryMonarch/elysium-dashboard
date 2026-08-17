@@ -92,6 +92,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5V6"/><path d="M6.5 12c0-5.5 11-5.5 11 0"/><path d="M6.5 12h11"/><path d="M10 15a2 2 0 0 0 4 0"/></svg>
           <div><b>ONF Pendant</b><span>Lighting</span></div>
         </div>
+        <div class="spec">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="9" r="2.3"/><circle cx="15.5" cy="7.5" r="1.9"/><circle cx="12" cy="14.5" r="2.7"/><path d="M4.5 20c5-2 10-2 15 0"/></svg>
+          <div><b><span id="shrimp-pop">--</span> shrimp</b><span>Blue Jelly Neocaridina</span></div>
+        </div>
       </div>
     </div>
 
@@ -383,7 +387,7 @@ function seriesFromBuckets(hourKeys, buckets) {
 ======================= */
 let tempChart, phChart, doChart;
 
-function makeLineChart(ctx, labels, data, borderColor, backgroundColor) {
+function makeLineChart(ctx, labels, data, borderColor, backgroundColor, pointRadius = 0) {
   return new Chart(ctx, {
     type: "line",
     data: {
@@ -394,7 +398,7 @@ function makeLineChart(ctx, labels, data, borderColor, backgroundColor) {
         backgroundColor,
         fill: false,
         tension: 0.3,
-        pointRadius: 0,
+        pointRadius,
         spanGaps: false,
         borderWidth: 2.5
       }]
@@ -452,7 +456,9 @@ async function updateCharts() {
   }
 
   if (doCtx) {
-    if (!doChart) doChart = makeLineChart(doCtx, labels, doData, "#6fd3ff", "#6fd3ff");
+    // visible points: trusted DO history only began 2026-08-17, so early on the
+    // line has isolated points that pointRadius 0 would hide entirely
+    if (!doChart) doChart = makeLineChart(doCtx, labels, doData, "#6fd3ff", "#6fd3ff", 2);
     else { doChart.data.labels = labels; doChart.data.datasets[0].data = doData; doChart.update(); }
   }
 
@@ -472,11 +478,14 @@ async function updateCharts() {
             The photo + blurb are pulled from Wikipedia automatically.
    - count: manual; set to null to hide the count (e.g. for plants).
 ======================= */
+// Manual population count — update this number after each hand count.
+const SHRIMP_POPULATION = 35;
+
 const BIOTA = [
   {
-    name: "Amano Shrimp", nickname: "melvin", wiki: "Caridina multidentata",
-    type: "Shrimp", count: 1,
-    blurb: "A hardy algae-eating shrimp prized in planted tanks for its appetite and peaceful temperament. Larger than Neocaridina, and can't breed in freshwater, so the population stays put."
+    name: "Blue Jelly Shrimp", wiki: "Neocaridina davidi",
+    type: "Shrimp", count: SHRIMP_POPULATION,
+    blurb: "A selectively bred sky-blue morph of the dwarf cherry shrimp (Neocaridina davidi). Hardy, peaceful biofilm and algae grazers that breed readily in freshwater; the colony count here is tallied by hand."
   },
   {
     name: "Monte Carlo", wiki: "Micranthemum tweediei",
@@ -671,6 +680,9 @@ function updateLightCycle() {
 ======================= */
 window.addEventListener("DOMContentLoaded", () => {
   applyLanguage();
+
+  const pop = document.getElementById("shrimp-pop");
+  if (pop) pop.textContent = SHRIMP_POPULATION;
 
   updateDashboard();
   updateCharts();

@@ -170,10 +170,10 @@ main {
 }
 
 .compact-row {
-    max-width: 1100px;
+    max-width: 1560px;   /* matches the stream + MO/TH/ER row above */
     margin: 1.8rem auto 0;
     display: grid;
-    grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
+    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
     gap: 22px;
     align-items: stretch;
 }
@@ -186,7 +186,7 @@ main {
 
 .compact-right {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 20px;
 }
 
@@ -255,8 +255,18 @@ main {
    RESPONSIVE
    ============== */
 
+@media (max-width: 1250px) {
+    .compact-right {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 @media (max-width: 900px) {
     .compact-row {
+        grid-template-columns: 1fr;
+    }
+
+    .compact-right {
         grid-template-columns: 1fr;
     }
 
@@ -402,7 +412,7 @@ main {
    ============== */
 
 .biota {
-    max-width: 1100px;
+    max-width: 1560px;   /* matches the stream + MO/TH/ER row above */
     margin: 3rem auto 0;
 }
 
