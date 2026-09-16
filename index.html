@@ -461,7 +461,7 @@ function seriesFromBuckets(hourKeys, buckets) {
 ======================= */
 let tempChart, phChart, doChart;
 
-function makeLineChart(ctx, labels, data, borderColor, backgroundColor, pointRadius = 0) {
+function makeLineChart(ctx, labels, data, borderColor, backgroundColor, pointRadius = 0, tickSuffix = "") {
   return new Chart(ctx, {
     type: "line",
     data: {
@@ -482,7 +482,10 @@ function makeLineChart(ctx, labels, data, borderColor, backgroundColor, pointRad
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { ticks: { maxTicksLimit: 12, autoSkip: true } }
+        x: { ticks: { maxTicksLimit: 12, autoSkip: true } },
+        // tickSuffix labels the axis in place, so the unit travels with the
+        // numbers instead of living only in the card header.
+        y: { ticks: { callback: (v) => `${v}${tickSuffix}` } }
       }
     }
   });
@@ -534,7 +537,7 @@ async function updateCharts() {
   if (doCtx) {
     // visible points: trusted DO history only began 2026-08-17, so early on the
     // line has isolated points that pointRadius 0 would hide entirely
-    if (!doChart) doChart = makeLineChart(doCtx, labels, doData, "#6fd3ff", "#6fd3ff", 2);
+    if (!doChart) doChart = makeLineChart(doCtx, labels, doData, "#6fd3ff", "#6fd3ff", 2, "%");
     else { doChart.data.labels = labels; doChart.data.datasets[0].data = doData; doChart.update(); }
   }
 
