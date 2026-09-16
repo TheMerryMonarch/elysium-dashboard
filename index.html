@@ -29,6 +29,48 @@
     </div>
     <div class="stream-frame">
       <video id="elysium-stream" controls autoplay muted playsinline></video>
+      <div class="stream-sleep" id="stream-sleep" hidden>
+        <div class="sleep-zs" aria-hidden="true"><span>z</span><span>z</span><span>z</span></div>
+<svg class="sleep-art" viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="sleepAntFade" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#bff9f2" stop-opacity=".95"/>
+              <stop offset=".55" stop-color="#8ff6ee" stop-opacity=".55"/>
+              <stop offset="1" stop-color="#8ff6ee" stop-opacity="0"/>
+            </linearGradient>
+            <linearGradient id="sleepAntGlow" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#4deeea" stop-opacity=".28"/>
+              <stop offset="1" stop-color="#4deeea" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <g stroke="#4deeea" opacity=".2" fill="none">
+            <path d="M32 58C28 42 46 34 70 35C100 36 126 46 150 64L149 71C124 78 100 84 76 84C54 84 34 78 32 64Z" stroke-width="6"/>
+            <path d="M150 65C166 54 178 48 188 46M150 66C168 60 182 58 194 58M150 68C166 68 180 70 192 72M150 70C166 76 178 82 186 88" stroke-width="5"/>
+            <path d="M32 52L3 48M32 58L3 48" stroke-width="4.5"/>
+          </g>
+          <g stroke="url(#sleepAntGlow)" fill="none" stroke-width="3.2" stroke-linecap="round"><path d="M52.0 36.2C54.0 22.2 80 13 116 10C146 7 174 9 199 13"/><path d="M60.0 35.1C62.0 26.1 88 26 120 24C148 22 176 25 199 31"/></g>
+          <g stroke="#eafffb" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M32 58C28 42 46 34 70 35C100 36 126 46 150 64L149 71C124 78 100 84 76 84C54 84 34 78 32 64Z" stroke-width="2.1"/>
+            <path d="M32 52L3 48M32 58L3 48" stroke-width="1.5"/>
+            <path d="M150 65C166 54 178 48 188 46M150 66C168 60 182 58 194 58M150 68C166 68 180 70 192 72M150 70C166 76 178 82 186 88" stroke-width="1.6"/>
+            <circle cx="45" cy="54" r="3.9" fill="#eafffb" stroke="none"/>
+          </g>
+          <g stroke="url(#sleepAntFade)" fill="none" stroke-width="1.25" stroke-linecap="round"><path d="M52.0 36.2C54.0 22.2 80 13 116 10C146 7 174 9 199 13"/><path d="M60.0 35.1C62.0 26.1 88 26 120 24C148 22 176 25 199 31"/></g>
+          <g stroke="#8ff6ee" fill="none" opacity=".8" stroke-linecap="round">
+            <path d="M98 37C101 52 101 68 98 84M112 39C115 54 115 69 111 84M126 44C129 57 128 70 124 82M139 52C141 62 140 71 136 78" stroke-width="1.05" opacity=".85"/>
+            <path d="M46.0 79.1C45.9 84.3 45.6 87.3 45.0 94.1M55.0 81.9C54.9 87.5 54.6 90.7 54.0 97.9M64.0 83.4C64.0 89.0 64.0 92.2 64.0 99.4M73.0 84.0C73.0 89.2 73.0 92.2 73.0 99.0" stroke-width="1.15" opacity=".85"/>
+            <path d="M86.0 83.7C86.2 87.5 86.3 89.7 87.0 94.7M98.0 82.5C98.2 86.3 98.3 88.5 99.0 93.5M110.0 80.5C110.2 84.0 110.3 86.0 111.0 90.5M122.0 78.0C122.2 81.2 122.3 83.0 123.0 87.0M133.0 75.3C133.2 78.1 133.3 79.7 134.0 83.3" stroke-width=".95" opacity=".6"/>
+            <path d="M12 50l2-2M19 50l2-2M26 50l2-2" stroke-width=".85" opacity=".8"/>
+            <path d="M188 46C194 56 194 68 186 88" stroke-width=".95" opacity=".5"/>
+          </g>
+        </svg>
+        <div class="sleep-title" id="sleep-title">Shh &mdash; the shrimp are sleeping</div>
+        <div class="sleep-sub" id="sleep-sub">(and so are their owners)</div>
+        <div class="sleep-chip">
+          <span class="sleep-dot" aria-hidden="true"></span>
+          <span id="sleep-wake">Wakes in</span>&nbsp;<b id="sleep-countdown">&mdash;</b>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -237,6 +279,10 @@ const translations = {
     specs: "Specs",
     tempUnit: "°F",
     phUnit: "",
+    sleepTitle: "Shh — the shrimp are sleeping",
+    sleepSub: "(and so are their owners)",
+    sleepWake: "Wakes in",
+    sleepBadge: "SLEEPING",
     button: "日本語"
   },
   jp: {
@@ -249,6 +295,10 @@ const translations = {
     specs: "機材",
     tempUnit: "°F",
     phUnit: "",
+    sleepTitle: "しーっ — エビたちは眠っています",
+    sleepSub: "（飼い主も眠っています）",
+    sleepWake: "起床まで",
+    sleepBadge: "おやすみ",
     button: "English"
   }
 };
@@ -259,6 +309,14 @@ function applyLanguage() {
 
   const sl = document.querySelector(".stream-label");
   if (sl) sl.textContent = t.stream;
+
+  const sleepIds = { "sleep-title": t.sleepTitle, "sleep-sub": t.sleepSub, "sleep-wake": t.sleepWake };
+  for (const id in sleepIds) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = sleepIds[id];
+  }
+  // Badge may currently read SLEEPING; refresh it in the new language.
+  if (window.__elysiumRefreshStreamPhase) window.__elysiumRefreshStreamPhase();
 
   const bt = document.getElementById("biota-title");
   if (bt) bt.textContent = t.biota;
@@ -713,7 +771,76 @@ window.addEventListener("DOMContentLoaded", () => {
   const SRC = "https://live.elysiumshrimptank.com/hls/elysium.m3u8";
   const video = document.getElementById("elysium-stream");
   const badge = document.querySelector(".live-badge");
+  const sleepCard = document.getElementById("stream-sleep");
   if (!video) return;
+
+  // Quiet hours. The Pi stops elysium-stream overnight rather than encoding and
+  // uploading a black frame for seven hours, so there is genuinely nothing to
+  // play. Hours mirror quiet_hours in mother/rules.yaml -- keep them in step.
+  const QUIET_START = 22;   // 22:00 inclusive
+  const QUIET_END   = 5;    // 05:00 exclusive
+  const TANK_TZ = "America/Chicago";
+
+  // The tank's hour, not the viewer's -- someone watching from Tokyo should
+  // still see the shrimp asleep on Texas time. Intl handles DST for us.
+  function tankHour() {
+    try {
+      return parseInt(new Intl.DateTimeFormat("en-US", {
+        timeZone: TANK_TZ, hour: "numeric", hourCycle: "h23"
+      }).format(new Date()), 10);
+    } catch (e) {
+      return new Date().getHours();   // ancient browser: degrade to local time
+    }
+  }
+
+  function isQuiet() {
+    const h = tankHour();
+    return (QUIET_START < QUIET_END)
+      ? (h >= QUIET_START && h < QUIET_END)
+      : (h >= QUIET_START || h < QUIET_END);
+  }
+
+  // Seconds since midnight in the tank's timezone.
+  function tankSecs() {
+    try {
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: TANK_TZ, hour: "numeric", minute: "numeric",
+        second: "numeric", hourCycle: "h23"
+      }).formatToParts(new Date());
+      const get = k => parseInt(parts.find(p => p.type === k).value, 10);
+      return get("hour") * 3600 + get("minute") * 60 + get("second");
+    } catch (e) {
+      const d = new Date();
+      return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
+    }
+  }
+
+  function renderCountdown() {
+    const el = document.getElementById("sleep-countdown");
+    if (!el) return;
+    let left = QUIET_END * 3600 - tankSecs();
+    if (left <= 0) left += 86400;          // already past 05:00 -> tomorrow's wake
+    const h = Math.floor(left / 3600);
+    const m = Math.floor((left % 3600) / 60);
+    el.textContent = h + "H " + String(m).padStart(2, "0") + "M";
+  }
+
+  let hls = null;
+  let running = false;
+  let countdownTimer = null;
+  let asleep = null;   // null = not yet decided, so the first pass always applies
+
+  function t() {
+    // `translations` / `currentLang` are top-level let/const in the script
+    // above. Those live in the global LEXICAL scope, not on window, so they
+    // must be read by bare name -- window.translations is undefined.
+    try {
+      if (typeof translations !== "undefined" && typeof currentLang !== "undefined") {
+        return translations[currentLang] || null;
+      }
+    } catch (e) {}
+    return null;
+  }
 
   function setLive(on) {
     if (!badge) return;
@@ -722,23 +849,83 @@ window.addEventListener("DOMContentLoaded", () => {
     if (txt) txt.textContent = on ? "LIVE" : "OFFLINE";
   }
 
+  function setSleeping() {
+    if (!badge) return;
+    badge.classList.add("offline");
+    const txt = badge.querySelector(".live-text");
+    const tr = t();
+    if (txt) txt.textContent = (tr && tr.sleepBadge) || "SLEEPING";
+  }
+
   function start() {
+    if (running || isQuiet()) return;
+    running = true;
     if (video.canPlayType("application/vnd.apple.mpegurl")) {
       // Safari / iOS — native HLS
       video.src = SRC;
       video.addEventListener("playing", () => setLive(true));
-      video.addEventListener("error", () => { setLive(false); setTimeout(start, 10000); });
+      video.addEventListener("error", () => {
+        setLive(false);
+        setTimeout(() => { running = false; start(); }, 10000);
+      });
     } else if (window.Hls && Hls.isSupported()) {
-      const hls = new Hls({ liveSyncDuration: 4, lowLatencyMode: true });
+      hls = new Hls({ liveSyncDuration: 4, lowLatencyMode: true });
       hls.loadSource(SRC);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => setLive(true));
       hls.on(Hls.Events.ERROR, (_e, d) => {
-        if (d.fatal) { setLive(false); setTimeout(() => { hls.destroy(); start(); }, 10000); }
+        if (d.fatal) {
+          setLive(false);
+          setTimeout(() => {
+            if (hls) { hls.destroy(); hls = null; }
+            running = false;
+            start();
+          }, 10000);
+        }
       });
     }
   }
-  start();
+
+  // Tear the player down properly at 22:00. Without this the browser spends all
+  // night retrying a manifest that is deliberately gone, which is the bandwidth
+  // waste this feature exists to stop -- just moved to the viewer's end.
+  function stop() {
+    running = false;
+    if (hls) { try { hls.destroy(); } catch (e) {} hls = null; }
+    try { video.pause(); } catch (e) {}
+    video.removeAttribute("src");
+    try { video.load(); } catch (e) {}
+  }
+
+  function applyPhase() {
+    const quiet = isQuiet();
+    if (quiet === asleep) {              // no change; just refresh badge wording
+      if (quiet) setSleeping();
+      return;
+    }
+    asleep = quiet;
+    if (sleepCard) sleepCard.hidden = !quiet;
+    video.hidden = quiet;
+    if (quiet) {
+      stop();
+      setSleeping();
+      renderCountdown();
+      // Only tick while the card is actually on screen.
+      if (!countdownTimer) countdownTimer = setInterval(renderCountdown, 1000);
+    } else {
+      if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+      setLive(false);
+      start();
+    }
+  }
+
+  // Let the language toggle re-render the badge without duplicating this logic.
+  window.__elysiumRefreshStreamPhase = function () {
+    if (asleep) setSleeping();
+  };
+
+  applyPhase();
+  setInterval(applyPhase, 60000);   // cross the boundary within a minute
 })();
 </script>
 

@@ -613,3 +613,122 @@ main {
         max-height: 230px;
     }
 }
+
+/* =======================
+   QUIET HOURS — sleep card
+   Shown in place of the player 22:00–05:00 tank time, when the Pi stops
+   encoding rather than uploading seven hours of black frame.
+======================= */
+.stream-sleep {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 1.1rem;
+    background:
+        radial-gradient(ellipse at 50% 45%, rgba(77, 238, 234, 0.07), transparent 64%),
+        linear-gradient(180deg, #0a0616 0%, #05010a 100%);
+    color: #a8fff0;
+}
+
+.stream-sleep .sleep-art {
+    width: clamp(150px, 34%, 260px);
+    height: auto;
+    filter:
+        drop-shadow(0 0 3px rgba(77, 238, 234, 0.85))
+        drop-shadow(0 0 14px rgba(77, 238, 234, 0.5));
+    animation: sleep-bob 7s ease-in-out infinite;
+}
+
+.stream-sleep .sleep-title {
+    margin-top: 0.5rem;
+    font-size: clamp(0.92rem, 2vw, 1.22rem);
+    font-weight: 600;
+    color: #dffff9;
+    text-shadow: 0 0 18px rgba(77, 238, 234, 0.3);
+}
+
+.stream-sleep .sleep-sub {
+    margin-top: 0.15rem;
+    font-size: clamp(0.72rem, 1.5vw, 0.9rem);
+    color: rgba(255, 105, 180, 0.8);
+}
+
+.stream-sleep .sleep-chip {
+    margin-top: 0.7rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.32rem 0.8rem;
+    border-radius: 999px;
+    border: 1px solid rgba(77, 238, 234, 0.25);
+    background: rgba(77, 238, 234, 0.06);
+    font-family: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
+    font-size: clamp(0.62rem, 1.15vw, 0.74rem);
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: rgba(168, 255, 240, 0.78);
+}
+
+.stream-sleep .sleep-chip b {
+    color: #a8fff0;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+}
+
+.stream-sleep .sleep-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #4deeea;
+    box-shadow: 0 0 8px #4deeea;
+    animation: sleep-pulse 3.4s ease-in-out infinite;
+}
+
+/* Drifting z's, offset so they rise in sequence. */
+.stream-sleep .sleep-zs {
+    position: absolute;
+    top: 16%;
+    left: 58%;
+    width: 0;
+    height: 0;
+}
+
+.stream-sleep .sleep-zs span {
+    position: absolute;
+    font-size: 1.05rem;
+    color: rgba(168, 255, 240, 0.45);
+    animation: sleep-drift 4.8s ease-in-out infinite;
+}
+
+.stream-sleep .sleep-zs span:nth-child(1) { left: 26px; animation-delay: 0s;   }
+.stream-sleep .sleep-zs span:nth-child(2) { left: 42px; animation-delay: 1.6s; font-size: 0.9rem; }
+.stream-sleep .sleep-zs span:nth-child(3) { left: 56px; animation-delay: 3.2s; font-size: 0.76rem; }
+
+@keyframes sleep-bob {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-7px); }
+}
+
+@keyframes sleep-pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.25; }
+}
+
+@keyframes sleep-drift {
+    0%   { transform: translate(0, 0)      scale(0.85); opacity: 0; }
+    18%  { opacity: 0.6; }
+    100% { transform: translate(15px, -42px) scale(1.1); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .stream-sleep .sleep-art,
+    .stream-sleep .sleep-zs span,
+    .stream-sleep .sleep-dot {
+        animation: none;
+    }
+    .stream-sleep .sleep-zs span { opacity: 0.45; }
+}
