@@ -518,6 +518,12 @@ main {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    /* JS caps this to the video's runtime height; the vh value is the guard
+       for the first paint and for browsers without ResizeObserver. The inner
+       .mother-screen scrolls, so clipping here is what keeps the rounded
+       border intact. */
+    max-height: 70vh;
+    overflow: hidden;
     margin-top: 2.05rem;   /* aligns panel top with the video frame, below the stream header */
     border: 1px solid rgba(109, 255, 143, 0.35);
     border-radius: 14px;
@@ -738,4 +744,28 @@ main {
         animation: none;
     }
     .stream-sleep .sleep-zs span { opacity: 0.45; }
+}
+
+/* MO/TH/ER terminal scrollbar — visible enough to signal there is history
+   above, quiet enough not to fight the phosphor. */
+.mother-screen {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(109, 255, 143, 0.35) transparent;
+}
+
+.mother-screen::-webkit-scrollbar {
+    width: 8px;
+}
+
+.mother-screen::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.mother-screen::-webkit-scrollbar-thumb {
+    background: rgba(109, 255, 143, 0.28);
+    border-radius: 4px;
+}
+
+.mother-screen::-webkit-scrollbar-thumb:hover {
+    background: rgba(109, 255, 143, 0.45);
 }

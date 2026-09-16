@@ -623,13 +623,27 @@ async function renderBiota() {
 /* =======================
    MO/TH/ER FEED
 ======================= */
+const MOTHER_WINDOW_MS = 24 * 60 * 60 * 1000;   // show one day of her output
+const MOTHER_MIN_LINES = 6;                     // ...but never an empty screen
+
 async function updateMother() {
   try {
-    const r = await fetch(`${API_BASE}/narration?limit=12`, { cache: "no-store" });
+    // Ask for plenty and window it here: the feed's rate is hers to set, not
+    // ours to guess, and a quiet day should not leave the panel half empty.
+    const r = await fetch(`${API_BASE}/narration?limit=100`, { cache: "no-store" });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const entries = await r.json();
+    const all = await r.json();
     const screen = document.getElementById("mother-screen");
-    if (!screen || !Array.isArray(entries) || entries.length === 0) return;
+    if (!screen || !Array.isArray(all) || all.length === 0) return;
+
+    const cutoff = Date.now() - MOTHER_WINDOW_MS;
+    let entries = all.filter(e => {
+      const t = new Date(e.ts).getTime();
+      return Number.isFinite(t) && t >= cutoff;
+    });
+    // If she has been quiet for a day, fall back to the most recent few rather
+    // than showing nothing at all.
+    if (entries.length < MOTHER_MIN_LINES) entries = all.slice(-MOTHER_MIN_LINES);
 
     screen.innerHTML = "";
     for (const e of entries) {
@@ -650,6 +664,27 @@ async function updateMother() {
     console.error("MO/TH/ER feed failed:", err);
   }
 }
+
+/* Keep the terminal no taller than the video beside it. The frame is sized by
+   aspect-ratio off a fluid column, so its height is only known at runtime --
+   CSS alone cannot express "match that box". Observed rather than measured
+   once, so it survives resizes and the sleep-card swap. */
+(function syncMotherHeight() {
+  const frame = document.querySelector(".stream-frame");
+  const panel = document.querySelector(".mother-panel");
+  if (!frame || !panel) return;
+
+  function apply() {
+    // Only constrain when side by side; stacked narrow layouts should flow.
+    const sideBySide = panel.offsetLeft > frame.offsetLeft + 20;
+    const h = frame.getBoundingClientRect().height;
+    panel.style.maxHeight = (sideBySide && h > 0) ? h + "px" : "";
+  }
+
+  apply();
+  if (window.ResizeObserver) new ResizeObserver(apply).observe(frame);
+  window.addEventListener("resize", apply);
+})();
 
 /* =======================
    LIGHT CYCLE (Central Time)
