@@ -175,7 +175,7 @@
           <span class="sensor-name" id="do-label">Dissolved Oxygen</span>
           <span id="do-value" class="sensor-value">--</span>
         </div>
-        <div class="sensor-unit" id="do-unit">mg/L</div>
+        <div class="sensor-unit" id="do-unit">% saturation</div>
         <div id="do-last-updated" class="sensor-subtext">Last updated —</div>
         <div class="chart-placeholder"><canvas id="do-chart"></canvas></div>
       </section>
@@ -369,17 +369,28 @@ async function updateDashboard() {
   if (phEl) {
     phEl.textContent = (phVal != null && phVal !== "") ? Number(phVal).toFixed(2) : "--";
   }
-  // Dissolved oxygen (mg/L headline, % sat alongside — always both)
+  // Dissolved oxygen. % saturation leads because it is the intuitive figure --
+  // "how full of oxygen is this water" -- while mg/L means little to a visitor.
+  // mg/L stays alongside: it is the number the probe actually reports and the
+  // one every alert bound is written in.
+  const doPct = data.do_percent;
   const doVal = data.do_mg_per_l ?? data.do_mg_l;
   const doEl = document.getElementById("do-value");
-  if (doEl) doEl.textContent = (doVal != null && doVal !== "") ? Number(doVal).toFixed(2) : "--";
+  if (doEl) {
+    doEl.textContent = (doPct != null && doPct !== "")
+      ? Number(doPct).toFixed(1)
+      : ((doVal != null && doVal !== "") ? Number(doVal).toFixed(2) : "--");
+  }
 
-  const doPct = data.do_percent;
   const doUnitEl = document.getElementById("do-unit");
   if (doUnitEl) {
-    doUnitEl.textContent = (doPct != null && doPct !== "")
-      ? `mg/L · ${Number(doPct).toFixed(1)}% sat`
-      : "mg/L";
+    if (doPct != null && doPct !== "" && doVal != null && doVal !== "") {
+      doUnitEl.textContent = `% saturation · ${Number(doVal).toFixed(2)} mg/L`;
+    } else if (doPct != null && doPct !== "") {
+      doUnitEl.textContent = "% saturation";
+    } else {
+      doUnitEl.textContent = "mg/L";
+    }
   }
 
   // Last updated lines (one timestamp powers all three)
@@ -496,8 +507,10 @@ async function updateCharts() {
   );
 
   const doBuckets = avgBucketsFromHistory(history, r => {
-    const v = r.do_mg_per_l ?? r.do_mg_l;
-    return v ? v : undefined;  // 0.0 = the old broken push mapping, not a reading
+    // Plot % saturation, matching the tile. 0.0 is the old broken push mapping
+    // rather than a reading, so it is dropped the same way mg/L was.
+    const v = r.do_percent;
+    return v ? v : undefined;
   });
 
   const tempData = seriesFromBuckets(hourKeys, tempBuckets);
