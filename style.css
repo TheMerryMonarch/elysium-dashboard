@@ -634,6 +634,13 @@ main {
     color: #a8fff0;
 }
 
+/* The `hidden` attribute must beat the display:flex above. Author styles
+   override the browser's built-in [hidden] { display: none }, so without this
+   the card paints over the player around the clock — quiet hours or not. */
+.stream-sleep[hidden] {
+    display: none;
+}
+
 .stream-sleep .sleep-art {
     width: clamp(150px, 34%, 260px);
     height: auto;
