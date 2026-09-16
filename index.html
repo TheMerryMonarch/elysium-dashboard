@@ -153,7 +153,7 @@
           <span class="sensor-name" id="temp-label">Temperature</span>
           <span id="temp-value" class="sensor-value">--</span>
         </div>
-        <div class="sensor-unit" id="temp-unit">°F</div>
+        <div class="sensor-unit" id="temp-unit"></div>
         <div id="temp-last-updated" class="sensor-subtext">Last updated —</div>
         <div class="chart-placeholder"><canvas id="temp-chart"></canvas></div>
       </section>
@@ -175,7 +175,7 @@
           <span class="sensor-name" id="do-label">Dissolved Oxygen</span>
           <span id="do-value" class="sensor-value">--</span>
         </div>
-        <div class="sensor-unit" id="do-unit">% saturation</div>
+        <div class="sensor-unit" id="do-unit"></div>
         <div id="do-last-updated" class="sensor-subtext">Last updated —</div>
         <div class="chart-placeholder"><canvas id="do-chart"></canvas></div>
       </section>
@@ -325,7 +325,6 @@ function applyLanguage() {
   if (st) st.textContent = t.specs;
 
   document.getElementById("temp-label").textContent = t.temp;
-  document.getElementById("temp-unit").textContent = t.tempUnit;
 
   document.getElementById("ph-label").textContent = t.ph;
   document.getElementById("ph-unit").textContent = t.phUnit;
@@ -358,10 +357,23 @@ async function fetchLatest() {
 async function updateDashboard() {
   const data = await fetchLatest();
 
-  // Temperature (support both keys)
+  // Temperature (support both keys). The unit rides with the number now, so
+  // the reading is legible on its own; the sub-line carries Celsius, which is
+  // the more useful second unit on a page that ships a Japanese translation.
   const temp = data.temperature_f ?? data.temp_f;
   const tempEl = document.getElementById("temp-value");
-  if (tempEl) tempEl.textContent = (temp != null && temp !== "") ? Number(temp).toFixed(2) : "--";
+  const tempOk = temp != null && temp !== "";
+  if (tempEl) {
+    tempEl.innerHTML = tempOk
+      ? `${Number(temp).toFixed(2)}<span class="unit">°F</span>`
+      : "--";
+  }
+  const tempUnitEl = document.getElementById("temp-unit");
+  if (tempUnitEl) {
+    tempUnitEl.textContent = tempOk
+      ? `${(((Number(temp) - 32) * 5) / 9).toFixed(1)} °C`
+      : "";
+  }
 
   // pH
   const phVal = data.ph ?? data.pH ?? data.ph_value;
@@ -376,20 +388,26 @@ async function updateDashboard() {
   const doPct = data.do_percent;
   const doVal = data.do_mg_per_l ?? data.do_mg_l;
   const doEl = document.getElementById("do-value");
+  const pctOk = doPct != null && doPct !== "";
+  const mgOk = doVal != null && doVal !== "";
   if (doEl) {
-    doEl.textContent = (doPct != null && doPct !== "")
-      ? Number(doPct).toFixed(1)
-      : ((doVal != null && doVal !== "") ? Number(doVal).toFixed(2) : "--");
+    if (pctOk) {
+      doEl.innerHTML = `${Number(doPct).toFixed(1)}<span class="unit">%</span>`;
+    } else if (mgOk) {
+      doEl.innerHTML = `${Number(doVal).toFixed(2)}<span class="unit">mg/L</span>`;
+    } else {
+      doEl.textContent = "--";
+    }
   }
 
   const doUnitEl = document.getElementById("do-unit");
   if (doUnitEl) {
-    if (doPct != null && doPct !== "" && doVal != null && doVal !== "") {
-      doUnitEl.textContent = `% saturation · ${Number(doVal).toFixed(2)} mg/L`;
-    } else if (doPct != null && doPct !== "") {
-      doUnitEl.textContent = "% saturation";
+    if (pctOk && mgOk) {
+      doUnitEl.textContent = `saturation · ${Number(doVal).toFixed(2)} mg/L`;
+    } else if (pctOk) {
+      doUnitEl.textContent = "saturation";
     } else {
-      doUnitEl.textContent = "mg/L";
+      doUnitEl.textContent = "";
     }
   }
 
@@ -525,7 +543,7 @@ async function updateCharts() {
   const doCtx   = document.getElementById("do-chart")?.getContext("2d");
 
   if (tempCtx) {
-    if (!tempChart) tempChart = makeLineChart(tempCtx, labels, tempData, "#ff4d4d", "#ff4d4d");
+    if (!tempChart) tempChart = makeLineChart(tempCtx, labels, tempData, "#ff4d4d", "#ff4d4d", 0, "°F");
     else { tempChart.data.labels = labels; tempChart.data.datasets[0].data = tempData; tempChart.update(); }
   }
 

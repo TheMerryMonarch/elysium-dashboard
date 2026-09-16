@@ -769,3 +769,13 @@ main {
 .mother-screen::-webkit-scrollbar-thumb:hover {
     background: rgba(109, 255, 143, 0.45);
 }
+
+/* Unit rides with the headline reading. Smaller and slightly receded so the
+   number still leads, but the figure is legible without the sub-line. */
+.sensor-value .unit {
+    font-size: 0.58em;
+    font-weight: 500;
+    opacity: 0.72;
+    margin-left: 0.08em;
+    letter-spacing: 0.01em;
+}
