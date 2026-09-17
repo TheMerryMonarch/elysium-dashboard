@@ -74,13 +74,33 @@
     </div>
   </section>
 
+  <!-- MO/TH/ER's sigil: a stepped ziggurat with a lit core, tiered by two scan
+       lines. Plain geometry on purpose -- a bare triangle keeps its silhouette
+       down to 16px, where ring-and-arc designs turn to mush. Deliberately not
+       an eye: she makes a point of not having any. -->
+  <svg class="mother-sprite" aria-hidden="true" focusable="false">
+    <symbol id="mother-sigil" viewBox="0 0 24 24">
+      <path d="M12 2.4 21.8 20.6H2.2Z" fill="none" stroke="currentColor"
+            stroke-width="1.25" stroke-linejoin="round" opacity="0.95"/>
+      <path d="M12 2.4v18.2" stroke="currentColor" stroke-width="0.85" opacity="0.4"/>
+      <path d="M7.7 12.6h8.6M5.1 17.4h13.8" stroke="currentColor"
+            stroke-width="0.95" opacity="0.55"/>
+      <circle cx="12" cy="8.4" r="1.45" fill="currentColor"/>
+    </symbol>
+  </svg>
+
   <section class="mother-panel">
     <div class="mother-head">
-      <span class="mother-title">MO/TH/ER</span>
-      <span class="mother-sub">MASTER ORGANISM TELEMETRY HUB &amp; ECOSYSTEM REGULATOR</span>
+      <svg class="mother-avatar mother-avatar-lg" aria-hidden="true" focusable="false">
+        <use href="#mother-sigil"></use>
+      </svg>
+      <div class="mother-head-text">
+        <span class="mother-title">MO/TH/ER</span>
+        <span class="mother-sub">MASTER ORGANISM TELEMETRY HUB &amp; ECOSYSTEM REGULATOR</span>
+      </div>
     </div>
     <div class="mother-screen" id="mother-screen">
-      <div class="mother-line">INTERFACE 2037 READY FOR INQUIRY<span class="mother-cursor"></span></div>
+      <div class="mother-boot">STANDING WATCH. NOTHING TO REPORT YET.<span class="mother-cursor"></span></div>
     </div>
   </section>
 
@@ -659,6 +679,31 @@ async function renderBiota() {
 ======================= */
 const MOTHER_WINDOW_MS = 24 * 60 * 60 * 1000;   // show one day of her output
 const MOTHER_MIN_LINES = 6;                     // ...but never an empty screen
+const MOTHER_TZ = "America/Chicago";            // tank time, as she reckons it
+
+const motherTime = new Intl.DateTimeFormat("en-US",
+  { timeZone: MOTHER_TZ, hour: "2-digit", minute: "2-digit", hour12: false });
+const motherDay = new Intl.DateTimeFormat("en-US",
+  { timeZone: MOTHER_TZ, weekday: "short", month: "2-digit", day: "2-digit" });
+const motherDayKey = new Intl.DateTimeFormat("en-CA",
+  { timeZone: MOTHER_TZ, year: "numeric", month: "2-digit", day: "2-digit" });
+
+/* Her narration opens with its own clock -- "07:05 WEDNESDAY PRE-DAWN..." --
+   which restates the entry's own timestamp. Strip it so the time is said once,
+   in the margin, rather than twice with the second copy buried in the prose. */
+const MOTHER_LEADING_CLOCK = /^\s*\d{1,2}:\d{2}\s+/;
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+function motherSigil(cls) {
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("class", cls);
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  const use = document.createElementNS(SVG_NS, "use");
+  use.setAttribute("href", "#mother-sigil");
+  svg.appendChild(use);
+  return svg;
+}
 
 async function updateMother() {
   try {
@@ -679,23 +724,71 @@ async function updateMother() {
     // than showing nothing at all.
     if (entries.length < MOTHER_MIN_LINES) entries = all.slice(-MOTHER_MIN_LINES);
 
-    screen.innerHTML = "";
+    const frag = document.createDocumentFragment();
+    let lastDay = null;
+
     for (const e of entries) {
-      const div = document.createElement("div");
-      div.className = "mother-line";
       const d = new Date(e.ts);
-      const day = Number.isFinite(d.getTime())
-        ? d.toLocaleDateString("en-US", { timeZone: "America/Chicago", month: "2-digit", day: "2-digit" })
-        : "--/--";
-      div.textContent = `${day} ${e.text}`;
-      screen.appendChild(div);
+      const dated = Number.isFinite(d.getTime());
+
+      // Chat-style date divider whenever the day turns over.
+      if (dated && motherDayKey.format(d) !== lastDay) {
+        lastDay = motherDayKey.format(d);
+        const sep = document.createElement("div");
+        sep.className = "mother-daysep";
+        const label = document.createElement("span");
+        label.textContent = motherDay.format(d);
+        sep.appendChild(label);
+        frag.appendChild(sep);
+      }
+
+      const msg = document.createElement("article");
+      msg.className = "mother-msg";
+
+      const body = document.createElement("div");
+      body.className = "mother-body";
+
+      const meta = document.createElement("div");
+      meta.className = "mother-meta";
+      const who = document.createElement("span");
+      who.className = "mother-who";
+      who.textContent = "MO/TH/ER";
+      const time = document.createElement("time");
+      time.className = "mother-time";
+      time.textContent = dated ? motherTime.format(d) : "--:--";
+      if (dated) time.dateTime = d.toISOString();
+      meta.append(who, time);
+
+      const text = document.createElement("p");
+      text.className = "mother-text";
+      text.textContent = String(e.text || "").replace(MOTHER_LEADING_CLOCK, "");
+
+      body.append(meta, text);
+      msg.append(motherSigil("mother-avatar"), body);
+      frag.appendChild(msg);
     }
-    const cursor = document.createElement("span");
-    cursor.className = "mother-cursor";
-    screen.lastChild.appendChild(cursor);
+
+    screen.replaceChildren(frag);
+
+    const lastText = screen.querySelector(".mother-msg:last-of-type .mother-text");
+    if (lastText) {
+      const cursor = document.createElement("span");
+      cursor.className = "mother-cursor";
+      lastText.appendChild(cursor);
+    }
     screen.scrollTop = screen.scrollHeight;
   } catch (err) {
     console.error("MO/TH/ER feed failed:", err);
+    // Say so plainly. Leaving the standby line up would read as "she is quiet"
+    // when in fact the panel cannot reach her -- and only replace it when
+    // nothing has rendered yet, so a failed poll never wipes good output.
+    const screen = document.getElementById("mother-screen");
+    if (screen && !screen.querySelector(".mother-msg")) {
+      const note = document.createElement("div");
+      note.className = "mother-boot";
+      note.textContent = "TELEMETRY LINK UNAVAILABLE.";
+      screen.replaceChildren(note);
+    }
   }
 }
 

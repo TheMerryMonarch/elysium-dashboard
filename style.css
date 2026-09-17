@@ -536,10 +536,16 @@ main {
 
 .mother-head {
     display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
+    align-items: center;
+    gap: 0.7rem;
     padding: 0.7rem 1.1rem;
     border-bottom: 1px solid rgba(109, 255, 143, 0.25);
+}
+.mother-head-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
 }
 
 .mother-title {
@@ -568,7 +574,7 @@ main {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    text-shadow: 0 0 6px rgba(109, 255, 143, 0.45);
+    text-shadow: 0 0 5px rgba(109, 255, 143, 0.32);
     background-image: repeating-linear-gradient(
         0deg,
         rgba(0, 0, 0, 0.22) 0 1px,
@@ -576,10 +582,6 @@ main {
     );
 }
 
-.mother-line {
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-}
 
 .mother-cursor {
     display: inline-block;
@@ -596,6 +598,92 @@ main {
     50% { opacity: 0; }
 }
 
+/* MO/TH/ER reads as a chat log: her sigil in the gutter, the timestamp out in
+   the margin, and each utterance in its own demarcated block. The renderer
+   strips the clock she prefixes to her own prose, so the time is stated once
+   rather than twice. */
+.mother-sprite { display: none; }
+
+.mother-avatar {
+    width: 26px;
+    height: 26px;
+    flex: none;
+    color: #6dff8f;
+    filter: drop-shadow(0 0 5px rgba(109, 255, 143, 0.5));
+}
+.mother-avatar-lg { width: 34px; height: 34px; }
+
+.mother-msg {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.55rem;
+    margin-bottom: 0.9rem;
+}
+.mother-msg:last-child { margin-bottom: 0.2rem; }
+
+.mother-body { min-width: 0; }
+
+.mother-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    margin-bottom: 0.28rem;
+}
+.mother-who {
+    font-size: 0.62rem;
+    letter-spacing: 0.18em;
+    color: rgba(109, 255, 143, 0.92);
+    text-shadow: 0 0 7px rgba(109, 255, 143, 0.5);
+}
+/* Out of the prose and into the margin -- the whole point of the rework. */
+.mother-time {
+    margin-left: auto;
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    color: rgba(139, 255, 168, 0.5);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    text-shadow: none;
+}
+.mother-text {
+    margin: 0;
+    padding: 0.5rem 0.7rem;
+    border-radius: 9px;
+    border-left: 2px solid rgba(109, 255, 143, 0.45);
+    background: rgba(109, 255, 143, 0.06);
+    line-height: 1.6;
+    letter-spacing: 0.015em;
+    color: #a8ffbe;
+    /* A screenful of glowing all-caps was the hard-to-read part. Keep a trace
+       of phosphor for the CRT feel and let the characters themselves stay sharp. */
+    text-shadow: 0 0 3px rgba(109, 255, 143, 0.26);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.mother-daysep {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 0.5rem 0 0.85rem;
+    color: rgba(139, 255, 168, 0.5);
+    font-size: 0.58rem;
+    letter-spacing: 0.2em;
+}
+.mother-daysep::before,
+.mother-daysep::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: rgba(109, 255, 143, 0.2);
+}
+.mother-msg + .mother-daysep { margin-top: 0.9rem; }
+
+.mother-boot {
+    color: rgba(139, 255, 168, 0.72);
+    letter-spacing: 0.1em;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .mother-cursor { animation: none; }
 }
@@ -608,7 +696,7 @@ main {
     .mother-panel {
         margin-top: 0.9rem;
     }
-    .mother-head {
+    .mother-head-text {
         flex-direction: row;
         align-items: baseline;
         gap: 0.9rem;
