@@ -499,7 +499,7 @@ function seriesFromBuckets(hourKeys, buckets) {
 ======================= */
 let tempChart, phChart, doChart;
 
-function makeLineChart(ctx, labels, data, borderColor, backgroundColor, pointRadius = 0, tickSuffix = "") {
+function makeLineChart(ctx, labels, data, borderColor, backgroundColor, pointRadius = 0, tickSuffix = "", decimals = null) {
   return new Chart(ctx, {
     type: "line",
     data: {
@@ -522,8 +522,14 @@ function makeLineChart(ctx, labels, data, borderColor, backgroundColor, pointRad
       scales: {
         x: { ticks: { maxTicksLimit: 12, autoSkip: true } },
         // tickSuffix labels the axis in place, so the unit travels with the
-        // numbers instead of living only in the card header.
-        y: { ticks: { callback: (v) => `${v}${tickSuffix}` } }
+        // numbers instead of living only in the card header. The value needs
+        // formatting either way: a raw `${v}` exposes the float noise in the
+        // scale's step arithmetic (6.550000000000001). decimals pins a fixed
+        // precision; without it, getLabelForValue applies Chart.js's own.
+        y: { ticks: { callback: function (v) {
+          const n = decimals === null ? this.getLabelForValue(v) : Number(v).toFixed(decimals);
+          return `${n}${tickSuffix}`;
+        } } }
       }
     }
   });
@@ -568,7 +574,7 @@ async function updateCharts() {
   }
 
   if (phCtx) {
-    if (!phChart) phChart = makeLineChart(phCtx, labels, phData, "#ffd86b", "#ffd86b");
+    if (!phChart) phChart = makeLineChart(phCtx, labels, phData, "#ffd86b", "#ffd86b", 0, "", 2);
     else { phChart.data.labels = labels; phChart.data.datasets[0].data = phData; phChart.update(); }
   }
 
