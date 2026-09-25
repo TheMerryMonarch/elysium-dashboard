@@ -72,6 +72,126 @@ header {
         0 0 26px rgba(47, 158, 220, 0.9);
 }
 
+/* Soundscape toggle — outlined pink so it reads as a sibling of the language
+   pill, not a second copy of it. The bars sit still as an icon when off and
+   dance while the tank is playing. */
+
+.header-actions {
+    display: flex;
+    flex: none;            /* the title wraps before the buttons squeeze */
+    align-items: center;
+    gap: 0.6rem;
+    margin-left: 0.8rem;
+}
+
+.header-actions button { white-space: nowrap; }
+
+.sound-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.9rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 106, 193, 0.6);
+    background: rgba(255, 106, 193, 0.08);
+    color: #ffbdf2;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 500;
+    box-shadow: 0 0 10px rgba(255, 106, 193, 0.25);
+    transition: transform 0.1s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.sound-toggle:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 14px rgba(255, 106, 193, 0.5);
+}
+
+.sound-toggle[aria-pressed="true"] {
+    color: #fff0fb;
+    border-color: #ff6ac1;
+    background: rgba(255, 106, 193, 0.2);
+    box-shadow:
+        0 0 12px rgba(255, 106, 193, 0.55),
+        0 0 24px rgba(255, 106, 193, 0.3);
+}
+
+.sound-toggle:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.sound-toggle:focus-visible,
+.lang-toggle:focus-visible {
+    outline: 2px solid #4deeea;
+    outline-offset: 2px;
+}
+
+.sound-bars {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 12px;
+}
+
+.sound-bars i {
+    width: 3px;
+    border-radius: 1px;
+    background: currentColor;
+}
+.sound-bars i:nth-child(1) { height: 5px; }
+.sound-bars i:nth-child(2) { height: 10px; }
+.sound-bars i:nth-child(3) { height: 7px; }
+
+.sound-toggle[aria-pressed="true"] .sound-bars i { animation: soundBar 1.1s ease-in-out infinite; }
+.sound-toggle[aria-pressed="true"] .sound-bars i:nth-child(2) { animation-duration: 0.9s; animation-delay: 0.2s; }
+.sound-toggle[aria-pressed="true"] .sound-bars i:nth-child(3) { animation-duration: 1.3s; animation-delay: 0.45s; }
+
+@keyframes soundBar {
+    0%, 100% { height: 3px; }
+    50%      { height: 12px; }
+}
+
+/* What the tank is playing right now, under the clock. */
+.dn-sound {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.dn-sound[hidden] { display: none; }
+
+.dn-sound-main {
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    color: #ffbdf2;
+    text-shadow: 0 0 8px rgba(255, 106, 193, 0.45);
+}
+
+.dn-sound-map {
+    font-size: 11px;
+    letter-spacing: 0.03em;
+    color: #9a8fc0;
+}
+
+/* Phones: icon-only, label kept for screen readers. */
+@media (max-width: 600px) {
+    .sound-toggle { padding: 0.4rem 0.7rem; }
+    .sound-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sound-toggle[aria-pressed="true"] .sound-bars i { animation: none; }
+}
+
 /* ==============
    MAIN LAYOUT
    ============== */

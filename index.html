@@ -8,13 +8,20 @@
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+  <script src="soundscape.js" defer></script>
 </head>
 
 <body>
 
 <header>
   <div id="title">Elysium Tank</div>
-  <button class="lang-toggle" onclick="toggleLanguage()">日本語</button>
+  <div class="header-actions">
+    <button class="sound-toggle" id="sound-toggle" type="button" aria-pressed="false">
+      <span class="sound-bars" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="sound-label">Listen</span>
+    </button>
+    <button class="lang-toggle" onclick="toggleLanguage()">日本語</button>
+  </div>
 </header>
 
 <main>
@@ -119,6 +126,10 @@
             <span class="dn-co2-txt">CO2: online</span>
           </span>
           <div class="dn-notice" id="notice" style="display:none"></div>
+          <div class="dn-sound" id="sound-now" hidden>
+            <span class="dn-sound-main"></span>
+            <span class="dn-sound-map"></span>
+          </div>
         </div>
       </div>
       <div class="dn-legend">
@@ -353,6 +364,8 @@ function applyLanguage() {
   if (dl) dl.textContent = t.doLabel;
 
   document.querySelector(".lang-toggle").textContent = t.button;
+
+  if (window.ElysiumSound) ElysiumSound.setLang(currentLang);
 }
 
 function toggleLanguage() {
@@ -430,6 +443,9 @@ async function updateDashboard() {
       doUnitEl.textContent = "";
     }
   }
+
+  // Feed the soundscape: pH sets its key, DO its pace, temperature its warmth.
+  if (window.ElysiumSound) ElysiumSound.setTelemetry({ ph: phVal, doPct, tempF: temp });
 
   // Last updated lines (one timestamp powers all three)
   if (data.timestamp) {
@@ -886,7 +902,11 @@ function updateLightCycle() {
   k.style.textShadow = `0 0 16px ${color}`;
 
   // CO2 line only appears while CO2 is actually flowing
-  document.getElementById("co2").style.display = (t >= CO2_ON && t < CO2_OFF) ? "" : "none";
+  const co2On = t >= CO2_ON && t < CO2_OFF;
+  document.getElementById("co2").style.display = co2On ? "" : "none";
+
+  // Soundscape follows the same clock: phase picks the scale, CO2 adds bubbles.
+  if (window.ElysiumSound) ElysiumSound.setPhase(kanji, { co2: co2On });
 
   // transition notice flashes for its one minute, in the new phase's color
   const NOTICES = [
