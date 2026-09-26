@@ -119,7 +119,6 @@
       leads: ["pulse", "flute", "bell", "pulse"], arps: ["chip", "pluck", "bell"], pads: ["chip", "organ", "glass"],
       grooves: ["light", "straight", "halftime", "none"], basses: ["pulse", "long", "walk"],
       arrs: ["build", "tuneFirst", "bridge", "journey", "interlude", "calm"],
-      en: "Lydian", jp: "・リディア旋法",
     },
     "日": {
       mode: "major", bpm: 112, cells: "drive", waltz: 0.2,
@@ -127,7 +126,6 @@
       leads: ["pulse", "pulse", "saw", "flute", "bell"], arps: ["chip", "pluck", "thin"], pads: ["chip", "organ"],
       grooves: ["straight", "shuffle", "halftime", "light"], basses: ["octave", "pulse", "walk"],
       arrs: ["build", "tuneFirst", "bridge", "journey", "build", "interlude", "calm"],
-      en: "major", jp: "長調",
     },
     "黄昏": {
       mode: "dorian", bpm: 98, cells: "drive", waltz: 0.3,
@@ -135,7 +133,6 @@
       leads: ["flute", "bell", "pulse", "saw"], arps: ["pluck", "bell", "chip"], pads: ["organ", "glass", "chip"],
       grooves: ["light", "halftime", "shuffle", "none"], basses: ["pulse", "long", "walk"],
       arrs: ["build", "tuneFirst", "bridge", "journey", "interlude", "calm"],
-      en: "Dorian", jp: "・ドリア旋法",
     },
     "夜": {
       mode: "minor", bpm: 84, cells: "float", waltz: 0.3,
@@ -143,7 +140,6 @@
       leads: ["bell", "flute", "flute", "pulse"], arps: ["bell", "pluck"], pads: ["glass", "organ"],
       grooves: ["none", "none", "light"], basses: ["long"],
       arrs: ["interlude", "tuneFirst", "build", "bridge", "calm", "calm"],
-      en: "minor", jp: "短調",
     },
   };
 
@@ -213,8 +209,6 @@
   const KEY_OFFSETS = [-3, -1, 0, 2, 4, 5, 7];        // A B C D E F G
   const DEFAULT_KEY = 2;                              // C, until pH arrives
   const PH_LO = 5.6, PH_HI = 7.4;
-  const NOTE_EN = ["C", "D♭", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"];
-  const NOTE_JP = ["ハ", "変ニ", "ニ", "変ホ", "ホ", "ヘ", "嬰ヘ", "ト", "変イ", "イ", "変ロ", "ロ"];
   /* The calm arrangement's character per phase: its own mode, a slower tempo,
      unhurried chord loops that sway between two or three chords, softer
      instruments, and (by day) a warm heat-haze on the lo-fi stage.
@@ -247,17 +241,6 @@
     },
   };
 
-  const MODE_LABEL = {
-    lydian: { en: "Lydian", jp: "・リディア旋法" },
-    major:  { en: "major",  jp: "長調" },
-    dorian: { en: "Dorian", jp: "・ドリア旋法" },
-    minor:  { en: "minor",  jp: "短調" },
-  };
-
-  const FEEL = {
-    en: { straight: "", shuffle: "shuffle", halftime: "half-time", light: "", none: "ambient", waltz: "waltz", calm: "slow & quiet" },
-    jp: { straight: "", shuffle: "シャッフル", halftime: "ハーフタイム", light: "", none: "アンビエント", waltz: "ワルツ", calm: "静かに" },
-  };
 
   /* Lo-fi amounts per phase. cutoff: the muffler's corner in Hz (20 kHz is
      fully open); wow: tape wobble depth in seconds of delay swing;
@@ -276,22 +259,96 @@
   const TICK = 0.2;
   const MEMORY = 3;        // how many recent pieces the chooser tries not to echo
 
+  /* Song titles: a whimsical adjective and noun ("prim peacock"). About 80,000
+     combinations; every title used is remembered (across visits too, where
+     the browser allows) and never reused, and no single word comes back
+     within the last 30 songs, so titles read fresh for hours. */
+  const TITLE_ADJ = [
+    "prim", "sad", "hungry", "sleepy", "bashful", "dapper", "grumpy", "lopsided", "velvet",
+    "wobbly", "fuzzy", "sneaky", "sheepish", "jolly", "drowsy", "fancy", "humble", "tiny", "giant",
+    "brave", "timid", "curious", "nervous", "polite", "rowdy", "snooty", "gentle", "clumsy",
+    "nimble", "sulky", "chubby", "dainty", "frumpy", "spiffy", "scruffy", "tidy", "messy", "dizzy",
+    "lazy", "busy", "bouncy", "squishy", "crunchy", "soggy", "crispy", "tangy", "salty", "sweet",
+    "sour", "zesty", "minty", "buttery", "toasty", "frosty", "chilly", "balmy", "muggy", "breezy",
+    "cloudy", "drizzly", "misty", "foggy", "sunny", "starry", "moonlit", "dusky", "rosy", "golden",
+    "silver", "copper", "amber", "violet", "lavender", "teal", "crimson", "indigo", "peachy",
+    "lemony", "plummy", "mossy", "leafy", "sandy", "pebbly", "glassy", "pearly", "shiny",
+    "glittery", "sparkly", "dusty", "rusty", "creaky", "squeaky", "rumbly", "hushed", "whispery",
+    "chatty", "mumbly", "giggly", "snorty", "hiccupy", "yawny", "stretchy", "wiggly", "jiggly",
+    "giddy", "peppy", "perky", "plucky", "spunky", "feisty", "cheeky", "sassy", "snappy", "zippy",
+    "swift", "poky", "dawdling", "wandering", "lost", "homesick", "faraway", "secret", "hidden",
+    "sunken", "floating", "drifting", "tumbling", "spinning", "sleepwalking", "daydreaming",
+    "moonstruck", "lovesick", "starstruck", "thoughtful", "forgetful", "absentminded", "bewildered",
+    "puzzled", "startled", "delighted", "smitten", "wistful", "mellow", "jaunty", "carefree",
+    "dreamy", "hazy", "fizzy", "bubbly", "sudsy", "soapy", "slippery", "sticky", "gooey", "gummy",
+    "chewy", "lumpy", "knobbly", "bumpy", "wrinkly", "crinkly", "crumpled", "folded", "patchwork",
+    "threadbare", "mended", "borrowed", "secondhand", "vintage", "antique", "ancient", "elderly",
+    "youthful", "newborn", "fledgling", "midnight", "noontime", "weekend", "holiday", "rainy",
+    "snowy", "windswept", "thunderous", "electric", "magnetic", "cosmic", "lunar", "solar", "tidal",
+    "coral", "kelpy", "briny", "fishy", "shrimpy", "pondside", "riverside", "seaside", "hilltop",
+    "underwater", "upside-down", "sideways", "backwards", "topsy-turvy", "mismatched", "unmatched",
+    "lonesome", "solitary", "neighborly", "friendly", "bossy", "fussy", "picky", "greedy",
+    "generous", "thrifty", "lucky", "unlucky", "haunted", "enchanted", "bewitched", "cursed",
+    "blessed", "noble", "royal", "common", "peculiar", "odd", "quirky", "whimsical", "silly",
+    "serious", "solemn", "pompous", "regal", "majestic", "modest", "shy", "proud", "vain",
+    "grateful", "sorry", "tender", "brittle", "sturdy", "wooden", "paper", "cardboard", "velvety",
+    "woolly", "silken", "leathery", "marzipan", "caramel", "sugary", "maple", "honeyed", "cinnamon",
+    "gingerbread", "porcelain", "ceramic", "clockwork", "wind-up", "plastic", "inflatable", "heavy",
+    "weightless", "pocket-sized", "oversized", "bite-sized", "tall", "short", "round", "square",
+    "pointy", "lanky", "stubby",
+  ];
+  const TITLE_NOUN = [
+    "peacock", "blueberry", "clown", "walrus", "teapot", "lantern", "dumpling", "pancake",
+    "biscuit", "muffin", "pickle", "turnip", "radish", "parsnip", "cabbage", "pumpkin", "acorn",
+    "chestnut", "walnut", "peanut", "pretzel", "noodle", "meatball", "omelette", "waffle",
+    "crumpet", "scone", "macaron", "gumdrop", "marshmallow", "jellybean", "lollipop", "sundae",
+    "milkshake", "teacup", "saucer", "spoon", "ladle", "kettle", "toaster", "tea cozy", "thimble",
+    "button", "zipper", "mitten", "slipper", "sock", "scarf", "bowtie", "monocle", "umbrella",
+    "suitcase", "postcard", "envelope", "stamp", "pinecone", "mushroom", "toadstool", "dandelion",
+    "buttercup", "daisy", "tulip", "sunflower", "cactus", "fern", "moss", "pebble", "boulder",
+    "puddle", "pond", "creek", "meadow", "orchard", "hedgehog", "badger", "otter", "beaver",
+    "raccoon", "possum", "squirrel", "chipmunk", "hamster", "ferret", "weasel", "mole", "vole",
+    "shrew", "rabbit", "hare", "fox", "wolf", "moose", "elk", "reindeer", "bison", "yak", "llama",
+    "alpaca", "camel", "giraffe", "hippo", "rhino", "tapir", "sloth", "koala", "wombat", "platypus",
+    "kangaroo", "lemur", "gibbon", "baboon", "penguin", "puffin", "pelican", "flamingo", "heron",
+    "stork", "crane", "swan", "goose", "duckling", "gosling", "owl", "owlet", "sparrow", "robin",
+    "finch", "wren", "magpie", "crow", "raven", "parrot", "toucan", "hummingbird", "woodpecker",
+    "kingfisher", "seagull", "albatross", "octopus", "squid", "jellyfish", "starfish", "seahorse",
+    "shrimp", "prawn", "lobster", "crab", "barnacle", "clam", "oyster", "mussel", "scallop",
+    "snail", "slug", "newt", "salamander", "frog", "toad", "tadpole", "turtle", "tortoise", "gecko",
+    "iguana", "chameleon", "beetle", "ladybug", "firefly", "moth", "butterfly", "caterpillar",
+    "dragonfly", "cricket", "grasshopper", "bumblebee", "ant", "spider", "snowman", "scarecrow",
+    "gnome", "goblin", "troll", "wizard", "witch", "knight", "jester", "pirate", "astronaut",
+    "plumber", "baker", "butcher", "tailor", "cobbler", "librarian", "mailman", "lighthouse",
+    "windmill", "treehouse", "igloo", "castle", "tower", "bridge", "tugboat", "sailboat", "canoe",
+    "submarine", "balloon", "blimp", "rocket", "comet", "meteor", "planet", "moon", "nebula",
+    "galaxy", "satellite", "telescope", "compass", "anchor", "kite", "yoyo", "marble", "jigsaw",
+    "domino", "pinwheel", "carousel", "trombone", "tuba", "banjo", "ukulele", "accordion",
+    "harmonica", "kazoo", "tambourine", "xylophone", "piano", "cello", "bagpipe", "doorbell",
+    "alarm clock", "grandfather", "grandmother", "uncle", "auntie", "cousin", "neighbor",
+    "landlord", "mayor", "duchess", "baron", "emperor", "sultan", "cowboy", "sheriff", "detective",
+    "magician", "acrobat", "juggler", "mime", "ventriloquist", "puppet", "marionette", "robot",
+    "lamp", "armchair", "sofa", "hammock", "bathtub", "rubber duck", "sponge", "loofah", "pillow",
+    "blanket", "quilt", "teddy bear", "dollhouse", "ragdoll", "nutcracker", "snowglobe",
+    "raincloud", "rainbow", "thunderstorm", "snowflake", "icicle", "sunbeam", "moonbeam", "shadow",
+    "echo", "whisper", "daydream", "lullaby",
+  ];
+  const TITLE_STORE = "elysium.songTitles";
+  const TITLE_KEEP = 3000;                   // remembered across visits
+  const WORD_GAP = 30;                       // songs before a word may return
+
   const UI = {
     en: {
       listen: "Listen", playing: "Listening",
       title: "Play retro-synth music composed live from the tank's sensors",
       unsupported: "Sound isn't supported in this browser",
-      main: (key, mode, bpm, feel) => `♪ ${key} ${mode} · ${bpm} BPM${feel ? " · " + feel : ""}`,
-      rest: "♪ between pieces — the next one is coming",
-      map: "pH → key · O₂ → tempo · temp → tone · CO₂ → bubbles",
+      rest: "♪ between songs",
     },
     jp: {
       listen: "聴く", playing: "再生中",
       title: "水槽のセンサーからリアルタイムに作曲されるレトロシンセ音楽",
       unsupported: "このブラウザでは音声を再生できません",
-      main: (key, mode, bpm, feel) => `♪ ${key}${mode} · ${bpm} BPM${feel ? " · " + feel : ""}`,
-      rest: "♪ 曲間 — まもなく次の曲",
-      map: "pH → 調 · 溶存酸素 → テンポ · 水温 → 音色 · CO₂ → 泡",
+      rest: "♪ 曲間",
     },
   };
 
@@ -320,7 +377,6 @@
   const rand = (lo, hi) => lo + Math.random() * (hi - lo);
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
   const mod7 = (i) => ((i % 7) + 7) % 7;
-  const pc = (m) => ((Math.round(m) % 12) + 12) % 12;
   function num(v) {
     if (v == null || v === "") return null;
     const n = Number(v);
@@ -344,6 +400,34 @@
     const recent = history.slice(-(depth || MEMORY)).map((h) => JSON.stringify(h[key]));
     const fresh = pool.filter((x) => !recent.includes(JSON.stringify(x)));
     return pick(fresh.length ? fresh : pool);
+  }
+
+  // Song titles. Storage can be blocked (private windows, strict settings);
+  // naming still works then, it just forgets between visits.
+  const usedTitles = (() => {
+    try {
+      const a = JSON.parse(localStorage.getItem(TITLE_STORE) || "[]");
+      return new Set(Array.isArray(a) ? a : []);
+    } catch (e) {
+      return new Set();
+    }
+  })();
+  const recentWords = [];
+  function nameSong() {
+    let title = null;
+    for (let i = 0; i < 400 && !title; i++) {
+      const a = pick(TITLE_ADJ), n = pick(TITLE_NOUN), t = a + " " + n;
+      if (!usedTitles.has(t) && !recentWords.includes(a) && !recentWords.includes(n)) title = t;
+    }
+    if (!title) title = pick(TITLE_ADJ) + " " + pick(TITLE_NOUN);   // all but impossible
+    recentWords.push(title);
+    title.split(" ").forEach((w) => recentWords.push(w));
+    while (recentWords.length > WORD_GAP * 3) recentWords.shift();
+    usedTitles.add(title);
+    try {
+      localStorage.setItem(TITLE_STORE, JSON.stringify(Array.from(usedTitles).slice(-TITLE_KEEP)));
+    } catch (e) { /* storage unavailable: fine */ }
+    return title;
   }
 
   /* =======================================================================
@@ -994,7 +1078,7 @@
       lofi: c.calm ? c.calm.lofi : null,
       root: root0, rootNow: root0, shiftAt, shift: c.modShift,
       lead: c.lead, arpVoice: c.arpVoice, padVoice: c.padVoice,
-      feel: c.calm ? "calm" : c.meter === 3 ? "waltz" : c.groove, summary,
+      title: nameSong(), summary,
     };
   }
 
@@ -1108,7 +1192,7 @@
   /* =======================================================================
      UI
      ======================================================================= */
-  let btn = null, label = null, status = null, statusMain = null, statusMap = null;
+  let btn = null, label = null, status = null, statusMain = null;
 
   function render() {
     const u = UI[state.lang] || UI.en;
@@ -1119,19 +1203,7 @@
     }
     if (!status) return;
     status.hidden = !running;
-    if (statusMain) {
-      if (piece) {
-        const P = PHASES[piece.phaseKey];
-        const k = pc(piece.rootNow);
-        const jp = state.lang === "jp";
-        const ML = MODE_LABEL[piece.modeName] || { en: P.en, jp: P.jp };
-        statusMain.textContent = u.main(jp ? NOTE_JP[k] : NOTE_EN[k], jp ? ML.jp : ML.en, piece.bpm,
-          FEEL[jp ? "jp" : "en"][piece.feel]);
-      } else {
-        statusMain.textContent = u.rest;
-      }
-    }
-    if (statusMap) statusMap.textContent = u.map;
+    if (statusMain) statusMain.textContent = piece ? "♪ " + piece.title : u.rest;
   }
 
   function mount() {
@@ -1144,7 +1216,6 @@
     }
     if (status) {
       statusMain = status.querySelector(".dn-sound-main");
-      statusMap = status.querySelector(".dn-sound-map");
     }
     render();
   }
@@ -1190,7 +1261,7 @@
       const ms = p.events.filter((e) => e.m != null).map((e) => e.m);
       const bad = p.events.filter((e) => !Number.isFinite(e.t) || (e.m != null && !Number.isFinite(e.m))).length;
       return Object.assign({}, p.summary, {
-        seconds: Math.round(p.end - t0), notes: p.events.length, bad,
+        title: p.title, seconds: Math.round(p.end - t0), notes: p.events.length, bad,
         lo: Math.min.apply(null, ms), hi: Math.max.apply(null, ms),
         leadNotes: p.events.filter((e) => e.v === "lead").length,
       });
