@@ -166,15 +166,6 @@
           <div><b>ONF Pendant</b><span>Lighting</span></div>
         </div>
       </div>
-
-      <!-- Population tile (manual count) -->
-      <section class="sensor-panel pop-panel">
-        <div class="sensor-head">
-          <span class="sensor-name" id="pop-label">Population</span>
-          <span id="pop-value" class="sensor-value">--</span>
-        </div>
-        <div class="sensor-unit">Blue Jelly Neocaridina</div>
-      </section>
     </div>
 
     <div class="compact-right">
@@ -617,9 +608,6 @@ async function updateCharts() {
             The photo + blurb are pulled from Wikipedia automatically.
    - count: manual; set to null to hide the count (e.g. for plants).
 ======================= */
-// Manual population count — update this number after each hand count.
-const SHRIMP_POPULATION = 35;
-
 const BIOTA = [
   {
     name: "Blue Jelly Shrimp", wiki: "Neocaridina davidi",
@@ -932,9 +920,6 @@ function updateLightCycle() {
 ======================= */
 window.addEventListener("DOMContentLoaded", () => {
   applyLanguage();
-
-  const pop = document.getElementById("pop-value");
-  if (pop) pop.textContent = SHRIMP_POPULATION;
 
   updateDashboard();
   updateCharts();
