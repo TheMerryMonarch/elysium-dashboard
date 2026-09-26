@@ -208,6 +208,16 @@
     jp: { straight: "", shuffle: "シャッフル", halftime: "ハーフタイム", light: "", none: "アンビエント", waltz: "ワルツ" },
   };
 
+  /* Lo-fi amounts per phase. cutoff: the muffler's corner in Hz (20 kHz is
+     fully open); wow: tape wobble depth in seconds of delay swing;
+     crackle: vinyl bed level; verb: reverb send (a little wetter at night). */
+  const LOFI = {
+    "朝":   { cutoff: 20000, wow: 0,       crackle: 0,     verb: 0.28 },
+    "日":   { cutoff: 20000, wow: 0,       crackle: 0,     verb: 0.28 },
+    "黄昏": { cutoff: 3800,  wow: 0.0004,  crackle: 0.25,  verb: 0.32 },
+    "夜":   { cutoff: 1500,  wow: 0.0009,  crackle: 0.5,   verb: 0.36 },
+  };
+
   /* Dissolved oxygen nudges tempo up to ±8 BPM around the phase's own. */
   const DO_LO = 20, DO_HI = 100, DO_MID = 60, BPM_SWING = 8;
 
@@ -313,6 +323,20 @@
     }
     return bpm;
   }
+  // Glide the lo-fi stage to the current phase: over a few seconds normally,
+  // instantly on start so night never opens with a bright first bar.
+  function applyLofi(immediate) {
+    if (!ctx || !nodes) return;
+    const L = LOFI[state.phase];
+    const t = ctx.currentTime;
+    const tc = immediate ? 0.01 : 3;           // ~10 s to settle on a phase change
+    nodes.muffle1.frequency.setTargetAtTime(L.cutoff, t, tc);
+    nodes.muffle2.frequency.setTargetAtTime(Math.min(L.cutoff * 1.15, 20000), t, tc);
+    nodes.wowDepth.gain.setTargetAtTime(L.wow, t, tc);
+    nodes.crackleGain.gain.setTargetAtTime(L.crackle * 0.12, t, tc);
+    nodes.wet.gain.setTargetAtTime(L.verb, t, tc);
+  }
+
   // Pulse width follows temperature: 12.5% (thin, cool) -> 25% -> 50% (round, warm).
   function pulseForTemp() {
     const t = state.tempF == null ? 72 : state.tempF;
@@ -370,6 +394,21 @@
     for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
     return buf;
   }
+  // Vinyl: near-silence with sparse clicks of random size, over faint hiss.
+  function crackleBuffer(seconds) {
+    const len = Math.floor(ctx.sampleRate * seconds);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * 0.035;
+    const clicks = Math.floor(seconds * 9);
+    for (let c = 0; c < clicks; c++) {
+      const at = Math.floor(Math.random() * (len - 60));
+      const amp = (Math.random() < 0.15 ? 1 : 0.35) * (Math.random() < 0.5 ? -1 : 1) * Math.random();
+      for (let k = 0; k < 40; k++) d[at + k] += amp * Math.exp(-k / 6);
+    }
+    return buf;
+  }
+
   function impulse(seconds, decay) {
     const len = Math.floor(ctx.sampleRate * seconds);
     const buf = ctx.createBuffer(2, len, ctx.sampleRate);
@@ -404,14 +443,50 @@
     soften.type = "lowpass";
     soften.frequency.value = 7000;
     soften.Q.value = 0.2;
+
+    /* Lo-fi stage: a slow tape wobble, then two stacked lowpasses (24 dB/oct,
+       so the top really goes rather than just dimming). Wide open by day;
+       at twilight and night it closes down to a muffled, late-night sound.
+       LOFI below sets the amounts per phase; applyLofi() glides between them. */
+    const wobble = ctx.createDelay(0.1);
+    wobble.delayTime.value = 0.012;
+    const wowLfo = ctx.createOscillator();
+    wowLfo.frequency.value = 0.55;
+    const wowDepth = ctx.createGain();
+    wowDepth.gain.value = 0;
+    chain(wowLfo, wowDepth, wobble.delayTime);
+    wowLfo.start();
+    const muffle1 = ctx.createBiquadFilter();
+    muffle1.type = "lowpass";
+    muffle1.frequency.value = 20000;
+    muffle1.Q.value = 0.707;              // Butterworth: flat until the corner, so day stays untouched
+    const muffle2 = ctx.createBiquadFilter();
+    muffle2.type = "lowpass";
+    muffle2.frequency.value = 20000;
+    muffle2.Q.value = 0.707;
+
     const dry = ctx.createGain();
     dry.gain.value = 0.85;
     const verb = ctx.createConvolver();
     verb.buffer = impulse(2.8, 3);
     const wet = ctx.createGain();
     wet.gain.value = 0.28;
-    chain(soften, dry, master);
-    chain(soften, verb, wet, master);
+    chain(soften, wobble, muffle1, muffle2);
+    chain(muffle2, dry, master);
+    chain(muffle2, verb, wet, master);
+
+    // Vinyl bed: sparse crackle and a little hiss, mixed in after the muffler.
+    const crackle = ctx.createBufferSource();
+    crackle.buffer = crackleBuffer(7);
+    crackle.loop = true;
+    const crackleTone = ctx.createBiquadFilter();
+    crackleTone.type = "bandpass";
+    crackleTone.frequency.value = 2400;
+    crackleTone.Q.value = 0.4;
+    const crackleGain = ctx.createGain();
+    crackleGain.gain.value = 0;
+    chain(crackle, crackleTone, crackleGain, master);
+    crackle.start();
 
     const mix = ctx.createGain();
     mix.connect(soften);
@@ -453,6 +528,7 @@
 
     nodes = {
       master, limiter, echo, arpFilter,
+      muffle1, muffle2, wowDepth, crackleGain, wet,
       lead: bus(0.7), counter: bus(0.8), arp: bus(0.5, arpFilter),
       pad: bus(0, padFilter), bass: bus(0), drums: bus(0), fx: bus(1),
       noise: noiseBuffer(1),
@@ -914,6 +990,7 @@
     g.setValueAtTime(g.value, t);
     g.linearRampToValueAtTime(0.9, t + 0.4);
     state.keyIdx = keyIndexFor(state.ph, state.keyIdx);
+    applyLofi(true);
     jingle(t + 0.15);
     piece = null;
     nextPieceAt = t + 1.4;
@@ -999,7 +1076,10 @@
       state.phase = next;
       if (opts && typeof opts.co2 === "boolean") state.co2 = opts.co2;
       // The new phase takes over from the next piece; the jingle marks the moment now.
-      if (running && changed) jingle(ctx.currentTime + 0.1);
+      if (running && changed) {
+        jingle(ctx.currentTime + 0.1);
+        applyLofi(false);                    // the muffler eases in or out with the light
+      }
       render();
     },
     setLang(lang) {
