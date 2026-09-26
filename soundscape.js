@@ -118,7 +118,7 @@
       prog: [[0, 1, 5, 4], [0, 4, 1, 0], [0, 1, 3, 4], [0, 5, 1, 4], [3, 4, 0, 1], [0, 2, 1, 4]],
       leads: ["pulse", "flute", "bell", "pulse"], arps: ["chip", "pluck", "bell"], pads: ["chip", "organ", "glass"],
       grooves: ["light", "straight", "halftime", "none"], basses: ["pulse", "long", "walk"],
-      arrs: ["build", "tuneFirst", "bridge", "journey", "interlude"],
+      arrs: ["build", "tuneFirst", "bridge", "journey", "interlude", "calm"],
       en: "Lydian", jp: "・リディア旋法",
     },
     "日": {
@@ -126,7 +126,7 @@
       prog: [[0, 4, 5, 3], [5, 3, 0, 4], [0, 5, 3, 4], [3, 4, 5, 0], [0, 2, 3, 4], [0, 3, 4, 3], [0, 5, 1, 4], [3, 0, 4, 5], [0, 1, 3, 4]],
       leads: ["pulse", "pulse", "saw", "flute", "bell"], arps: ["chip", "pluck", "thin"], pads: ["chip", "organ"],
       grooves: ["straight", "shuffle", "halftime", "light"], basses: ["octave", "pulse", "walk"],
-      arrs: ["build", "tuneFirst", "bridge", "journey", "build", "interlude"],
+      arrs: ["build", "tuneFirst", "bridge", "journey", "build", "interlude", "calm"],
       en: "major", jp: "長調",
     },
     "黄昏": {
@@ -134,7 +134,7 @@
       prog: [[0, 3, 0, 3], [0, 6, 3, 4], [5, 6, 0, 0], [0, 2, 3, 6], [0, 3, 6, 0], [3, 6, 0, 4], [0, 6, 5, 6]],
       leads: ["flute", "bell", "pulse", "saw"], arps: ["pluck", "bell", "chip"], pads: ["organ", "glass", "chip"],
       grooves: ["light", "halftime", "shuffle", "none"], basses: ["pulse", "long", "walk"],
-      arrs: ["build", "tuneFirst", "bridge", "journey", "interlude"],
+      arrs: ["build", "tuneFirst", "bridge", "journey", "interlude", "calm"],
       en: "Dorian", jp: "・ドリア旋法",
     },
     "夜": {
@@ -142,7 +142,7 @@
       prog: [[0, 5, 3, 6], [0, 5, 2, 6], [5, 3, 0, 4], [0, 3, 5, 4], [0, 6, 5, 4], [0, 2, 5, 6], [3, 0, 6, 5]],
       leads: ["bell", "flute", "flute", "pulse"], arps: ["bell", "pluck"], pads: ["glass", "organ"],
       grooves: ["none", "none", "light"], basses: ["long"],
-      arrs: ["interlude", "tuneFirst", "build", "bridge"],
+      arrs: ["interlude", "tuneFirst", "build", "bridge", "calm", "calm"],
       en: "minor", jp: "短調",
     },
   };
@@ -185,6 +185,18 @@
       { bars: 8, arp: 1, bass: 1, pad: 1, mel: 1, counter: 1, drums: 1, shift: "mod" },
       { bars: 4, arp: 1, bass: 1, pad: 1, mel: 1, drums: 1, ending: 1, shift: "mod" },
     ],
+    /* Long and quiet: about two and a half to three minutes, no drums, a low
+       drone under everything, a harp-like arpeggio drifting in and out, and
+       the tune given room to breathe. Its character comes from CALM below:
+       lazy summer haze by day, a moonlit walk along a trail at night. */
+    calm: [
+      { bars: 8, pad: 1, drone: 1, arp: 1, arpSoft: 1 },
+      { bars: 8, pad: 1, drone: 1, arp: 1, arpSoft: 1, mel: 1, bass: 1 },
+      { bars: 8, pad: 1, drone: 1, mel: 1, counter: 1, bass: 1 },
+      { bars: 8, pad: 1, drone: 1, arp: 1, arpSoft: 1 },
+      { bars: 8, pad: 1, drone: 1, arp: 1, arpSoft: 1, mel: 1, bass: 1, prog: "B", tune: "B" },
+      { bars: 8, pad: 1, drone: 1, arp: 1, arpSoft: 1, mel: 1, bass: 1, ending: 1 },
+    ],
     // Short and quiet: pads, a soft arpeggio, the tune once or twice, no drums.
     interlude: [
       { bars: 4, pad: 1, arp: 1, arpSoft: 1 },
@@ -203,9 +215,48 @@
   const PH_LO = 5.6, PH_HI = 7.4;
   const NOTE_EN = ["C", "D♭", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"];
   const NOTE_JP = ["ハ", "変ニ", "ニ", "変ホ", "ホ", "ヘ", "嬰ヘ", "ト", "変イ", "イ", "変ロ", "ロ"];
+  /* The calm arrangement's character per phase: its own mode, a slower tempo,
+     unhurried chord loops that sway between two or three chords, softer
+     instruments, and (by day) a warm heat-haze on the lo-fi stage.
+       日  dog days of summer: slow major sway, flute over organ, hazy and warm
+       夜  moonlit trail: Dorian, a folk-like i-VII rocking, flute and harp */
+  const CALM = {
+    "朝": {
+      mode: "lydian", tempo: 0.72,
+      prog: [[0, 1, 0, 1], [0, 4, 1, 0], [0, 5, 1, 0], [0, 1, 5, 4]],
+      leads: ["flute", "bell"], arps: ["harp", "bell"], pads: ["glass", "organ"],
+      lofi: { cutoff: 7000, wow: 0.0003, crackle: 0.05, verb: 0.32 },
+    },
+    "日": {
+      mode: "major", tempo: 0.66,
+      prog: [[0, 3, 0, 3], [0, 4, 3, 0], [3, 0, 3, 4], [0, 5, 3, 0], [0, 3, 5, 4], [0, 2, 3, 0]],
+      leads: ["flute", "bell", "pulse"], arps: ["harp", "pluck"], pads: ["organ", "glass"],
+      lofi: { cutoff: 4800, wow: 0.0006, crackle: 0.12, verb: 0.34 },
+    },
+    "黄昏": {
+      mode: "dorian", tempo: 0.74,
+      prog: [[0, 3, 0, 3], [0, 6, 3, 0], [0, 6, 0, 6], [5, 6, 0, 0]],
+      leads: ["flute", "bell"], arps: ["harp", "bell"], pads: ["glass", "organ"],
+      lofi: null,
+    },
+    "夜": {
+      mode: "dorian", tempo: 0.82,
+      prog: [[0, 6, 0, 6], [0, 3, 6, 0], [0, 6, 3, 0], [0, 2, 6, 0], [5, 6, 0, 0], [0, 6, 5, 6]],
+      leads: ["flute", "flute", "bell"], arps: ["harp", "bell"], pads: ["glass", "organ"],
+      lofi: null,
+    },
+  };
+
+  const MODE_LABEL = {
+    lydian: { en: "Lydian", jp: "・リディア旋法" },
+    major:  { en: "major",  jp: "長調" },
+    dorian: { en: "Dorian", jp: "・ドリア旋法" },
+    minor:  { en: "minor",  jp: "短調" },
+  };
+
   const FEEL = {
-    en: { straight: "", shuffle: "shuffle", halftime: "half-time", light: "", none: "ambient", waltz: "waltz" },
-    jp: { straight: "", shuffle: "シャッフル", halftime: "ハーフタイム", light: "", none: "アンビエント", waltz: "ワルツ" },
+    en: { straight: "", shuffle: "shuffle", halftime: "half-time", light: "", none: "ambient", waltz: "waltz", calm: "slow & quiet" },
+    jp: { straight: "", shuffle: "シャッフル", halftime: "ハーフタイム", light: "", none: "アンビエント", waltz: "ワルツ", calm: "静かに" },
   };
 
   /* Lo-fi amounts per phase. cutoff: the muffler's corner in Hz (20 kHz is
@@ -258,6 +309,7 @@
   let nextPieceAt = 0;
   let nextBubbleAt = 0;
   const history = [];        // recent pieces' choices, newest last
+  let forcedArr = null;      // test hook: make the next piece a given arrangement
   const timers = new Set();
 
   /* =======================================================================
@@ -312,13 +364,13 @@
     const fresh = pool.filter((i) => i !== last);
     return pick(fresh.length ? fresh : pool);
   }
-  function chooseBpm(phase, meter) {
+  function chooseBpm(phase, meter, factor) {
     const d = state.doPct == null ? DO_MID : clamp(state.doPct, DO_LO, DO_HI);
     const base = PHASES[phase].bpm + (d - DO_MID) / (DO_HI - DO_MID) * BPM_SWING;
     const last = history.length ? history[history.length - 1].bpm : null;
     let bpm = 0;
     for (let tries = 0; tries < 4; tries++) {
-      bpm = Math.round(base * rand(0.92, 1.08) * (meter === 3 ? 0.9 : 1));
+      bpm = Math.round(base * (factor || 1) * rand(0.92, 1.08) * (meter === 3 ? 0.9 : 1));
       if (last == null || Math.abs(bpm - last) >= 5) break;
     }
     return bpm;
@@ -327,7 +379,7 @@
   // instantly on start so night never opens with a bright first bar.
   function applyLofi(immediate) {
     if (!ctx || !nodes) return;
-    const L = LOFI[state.phase];
+    const L = (piece && piece.lofi) || LOFI[state.phase];
     const t = ctx.currentTime;
     const tc = immediate ? 0.01 : 3;           // ~10 s to settle on a phase change
     nodes.muffle1.frequency.setTargetAtTime(L.cutoff, t, tc);
@@ -597,6 +649,11 @@
     },
   };
   const ARP_VOICES = {
+    // Harp: a plucked triangle left to ring, with a faint octave shimmer.
+    harp: (m, t, d, v) => {
+      voice(waves.tri, nodes.arp, m, t, d * 3, v * 2.2, { sustain: 0.12, decay: 0.45, release: 0.5 });
+      voice(waves.sine, nodes.arp, m + 12, t, d * 2, v * 0.7, { sustain: 0.08, decay: 0.3, release: 0.4 });
+    },
     chip: (m, t, d, v) => voice(waves.p25, nodes.arp, m, t, d, v, { sustain: 0.25, decay: 0.06, release: 0.03 }),
     thin: (m, t, d, v) => voice(waves.p12, nodes.arp, m, t, d, v * 0.9, { sustain: 0.25, decay: 0.06, release: 0.03 }),
     pluck: (m, t, d, v) => voice(waves.tri, nodes.arp, m, t, d, v * 2, { sustain: 0.1, decay: 0.09, release: 0.05 }),
@@ -731,9 +788,25 @@
     const meter = Math.random() < P.waltz ? 3 : 4;
     let groove = pickFresh(P.grooves, "groove", 1);
     if (meter === 3) groove = groove === "none" ? "none" : "waltz";
-    const arrName = pickFresh(P.arrs, "arr");
+    const arrName = forcedArr || pickFresh(P.arrs, "arr");
+    forcedArr = null;
     let bassStyle = pickFresh(P.basses, "bass", 1);
     if (groove === "none" && bassStyle !== "long" && Math.random() < 0.6) bassStyle = "long";
+    if (arrName === "calm") {
+      const C = CALM[phaseKey];
+      return {
+        phaseKey, meter, groove: "none", arrName, bassStyle: "long", calm: C,
+        lead: pickFresh(C.leads, "lead", 1),
+        arpVoice: pick(C.arps),
+        padVoice: pick(C.pads),
+        progA: pick(C.prog),
+        arpOrder: pick(ARPS[meter]),
+        arp16: false,
+        varyRepeat: true,
+        keyIdx: chooseKey(),
+        modShift: 0,
+      };
+    }
     return {
       phaseKey, meter, groove, arrName, bassStyle,
       lead: pickFresh(P.leads, "lead", 1),
@@ -752,9 +825,12 @@
   function compose(t0) {
     const c = composeChoices();
     const P = PHASES[c.phaseKey];
-    const mode = MODES[P.mode];
+    const modeName = c.calm ? c.calm.mode : P.mode;
+    const mode = MODES[modeName];
     const root0 = BASE_MIDI + KEY_OFFSETS[c.keyIdx];
-    const bpm = chooseBpm(c.phaseKey, c.meter);
+    const bpm = chooseBpm(c.phaseKey, c.meter, c.calm ? c.calm.tempo : 1);
+    // Calm pieces write floating tunes from their own chord pool.
+    const T = c.calm ? { cells: "float", prog: c.calm.prog } : P;
     const beat = 60 / bpm;
     const slots = c.meter * 4;                     // sixteenths per bar
     const bar = beat * c.meter;
@@ -763,9 +839,9 @@
     // Swung eighths land two-thirds of the way through the beat, not halfway.
     const at = (barT, slot) => barT + slot * s16 + (swing && slot % 4 === 2 ? beat / 6 : 0);
 
-    const progB = pick(P.prog.filter((p) => p !== c.progA));
-    const tuneA = writeTune(P, c.progA, c.meter);
-    const tuneB = writeTune(P, progB, c.meter, tuneA.cell);
+    const progB = pick(T.prog.filter((p) => p !== c.progA));
+    const tuneA = writeTune(T, c.progA, c.meter);
+    const tuneB = writeTune(T, progB, c.meter, tuneA.cell);
     const sections = ARRANGEMENTS[c.arrName];
     const events = [];
     const add = (ev) => events.push(ev);
@@ -784,6 +860,12 @@
       const root = root0 + shift;
       const prog = sec.prog === "B" ? progB : c.progA;
       const tune = sec.tune === "B" ? tuneB : tuneA;
+      // Drone: the key's root and fifth held low under the whole section.
+      if (sec.drone) {
+        const len = sec.bars * bar + 1.5;
+        add({ t: secT, dur: len, v: "drone", m: root - 24, vel: 0.05 });
+        add({ t: secT, dur: len, v: "drone", m: root - 17, vel: 0.03 });
+      }
       if (sec.sweep) {
         af.setValueAtTime(sec.sweep[0], secT);
         af.exponentialRampToValueAtTime(sec.sweep[1], secT + sec.bars * bar);
@@ -854,7 +936,7 @@
           else notes = second ? tune.home : tune.open;
           notes.forEach((n) => add({
             t: at(barT, n.s), dur: n.l * s16 * 0.9, v: "lead",
-            m: idxToMidi(root, mode, n.idx), vel: 0.075,
+            m: idxToMidi(root, mode, n.idx), vel: c.calm ? 0.062 : 0.075,
           }));
         }
 
@@ -908,10 +990,11 @@
     history.push(summary);
     if (history.length > 8) history.shift();
     return {
-      events, i: 0, end, bpm, modeName: P.mode, phaseKey: c.phaseKey,
+      events, i: 0, end, bpm, modeName, phaseKey: c.phaseKey,
+      lofi: c.calm ? c.calm.lofi : null,
       root: root0, rootNow: root0, shiftAt, shift: c.modShift,
       lead: c.lead, arpVoice: c.arpVoice, padVoice: c.padVoice,
-      feel: c.meter === 3 ? "waltz" : c.groove, summary,
+      feel: c.calm ? "calm" : c.meter === 3 ? "waltz" : c.groove, summary,
     };
   }
 
@@ -925,6 +1008,10 @@
         break;
       case "bass":
         voice(waves.tri, nodes.bass, ev.m, ev.t, ev.dur, ev.vel, { sustain: 0.85, decay: 0.2, release: 0.04 });
+        break;
+      case "drone":
+        voice(waves.sine, nodes.pad, ev.m, ev.t, ev.dur, ev.vel, { attack: 2.5, sustain: 1, decay: 1, release: 2 });
+        voice(waves.tri, nodes.pad, ev.m + 12, ev.t, ev.dur, ev.vel * 0.35, { attack: 3, sustain: 1, decay: 1, release: 2, detune: 5 });
         break;
       case "kick": kick(ev.t, ev.vel); break;
       case "snare": snare(ev.t, ev.vel); break;
@@ -946,6 +1033,7 @@
     if (!piece && now >= nextPieceAt - LOOKAHEAD) {
       piece = compose(Math.max(nextPieceAt, now + 0.1));
       lastPiece = piece;
+      if (piece.lofi) applyLofi(false);   // calm pieces bring their own haze
       render();
     }
     if (piece) {
@@ -959,7 +1047,9 @@
       }
       if (piece.i >= piece.events.length && now >= piece.end) {
         nextPieceAt = now + restSeconds();
+        const hadLofi = !!piece.lofi;
         piece = null;
+        if (hadLofi) applyLofi(false);      // back to the phase's own sound
         render();
       }
     }
@@ -1034,7 +1124,8 @@
         const P = PHASES[piece.phaseKey];
         const k = pc(piece.rootNow);
         const jp = state.lang === "jp";
-        statusMain.textContent = u.main(jp ? NOTE_JP[k] : NOTE_EN[k], jp ? P.jp : P.en, piece.bpm,
+        const ML = MODE_LABEL[piece.modeName] || { en: P.en, jp: P.jp };
+        statusMain.textContent = u.main(jp ? NOTE_JP[k] : NOTE_EN[k], jp ? ML.jp : ML.en, piece.bpm,
           FEEL[jp ? "jp" : "en"][piece.feel]);
       } else {
         statusMain.textContent = u.rest;
@@ -1091,6 +1182,7 @@
     // Exposed for recording previews and debugging; not needed by the page.
     _audio: () => (ctx && nodes ? { ctx, output: nodes.limiter } : null),
     _history: () => history.slice(),
+    _forceNext: (name) => { if (ARRANGEMENTS[name]) forcedArr = name; },
     // Compose without playing, to audit variety. Needs start() first.
     _dryCompose: () => {
       const t0 = ctx.currentTime + 1000;
