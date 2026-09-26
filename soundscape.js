@@ -2,18 +2,19 @@
    ELYSIUM SOUNDSCAPE
    Generated retro-synth music, composed live from the tank's own telemetry.
 
-   Each piece is built the way a game soundtrack cue is: a running arpeggio
-   sets the pulse, then bass, pads, a melody and drums enter one layer at a
-   time, drop away for a breakdown, and come back for a final pass that lands
-   on the home chord. The melody is written once per piece and repeats, so it
-   is heard as a tune rather than a wander. Voices are chip-style pulse and
-   triangle waves, doubled and detuned for warmth, through echo and reverb.
-   Nothing is prerecorded: no audio files to host, nothing to license.
+   The page writes an endless run of short pieces, the way a game soundtrack
+   is a set of cues. Each piece draws its own arrangement (slow build, tune
+   first, a bridge with a second theme, a journey that changes key, or a
+   quiet interlude), its own instruments, groove and meter, its own chord
+   loops, and a tune written for it that returns and answers itself. A short
+   memory keeps consecutive pieces from sounding alike. Voices are chip-style
+   pulse, triangle, bell and organ tones through echo and reverb. Nothing is
+   prerecorded: no audio files to host, nothing to license.
 
-     time of day (朝 日 黄昏 夜)  -> mode, tempo range, groove and drums
-     pH                           -> key of the next piece
+     time of day (朝 日 黄昏 夜)  -> mode, tempo, instruments, grooves on offer
+     pH                           -> key area (each piece sits on or next to it)
      dissolved oxygen %           -> tempo (nudged within the phase's range)
-     temperature                  -> lead tone (pulse width: cool = thin, warm = round)
+     temperature                  -> pulse lead tone (cool = thin, warm = round)
      CO2 injection on             -> little bubble blips
      phase change                 -> a short jingle
 
@@ -28,7 +29,9 @@
 
   const AC = window.AudioContext || window.webkitAudioContext;
 
-  /* ---------- musical material ---------- */
+  /* =======================================================================
+     MUSICAL MATERIAL
+     ======================================================================= */
 
   const MODES = {
     lydian: [0, 2, 4, 6, 7, 9, 11],
@@ -38,29 +41,46 @@
   };
 
   /* Melody rhythm cells: one bar of sixteenth-note slots as [start, length].
-     A tune uses one cell for its first three bars and a cadence cell for the
-     fourth, which is most of what makes it sound like a phrase. */
+     A tune uses one cell for its first three bars and a cadence for the fourth. */
   const CELLS = {
-    drive: [
-      [[0, 4], [4, 2], [6, 2], [8, 4], [12, 4]],
-      [[0, 2], [2, 2], [4, 4], [8, 2], [10, 2], [12, 4]],
-      [[0, 6], [6, 2], [8, 4], [12, 2], [14, 2]],
-      [[0, 4], [4, 4], [8, 6], [14, 2]],
-      [[0, 3], [3, 3], [6, 2], [8, 4], [12, 4]],
-    ],
-    float: [
-      [[0, 8], [8, 4], [12, 4]],
-      [[0, 4], [4, 4], [8, 8]],
-      [[0, 6], [6, 2], [8, 8]],
-      [[0, 12], [12, 4]],
-    ],
+    4: {
+      drive: [
+        [[0, 4], [4, 2], [6, 2], [8, 4], [12, 4]],
+        [[0, 2], [2, 2], [4, 4], [8, 2], [10, 2], [12, 4]],
+        [[0, 6], [6, 2], [8, 4], [12, 2], [14, 2]],
+        [[0, 4], [4, 4], [8, 6], [14, 2]],
+        [[0, 3], [3, 3], [6, 2], [8, 4], [12, 4]],
+        [[2, 2], [4, 4], [8, 2], [10, 6]],
+        [[0, 2], [2, 4], [6, 2], [8, 8]],
+      ],
+      float: [
+        [[0, 8], [8, 4], [12, 4]],
+        [[0, 4], [4, 4], [8, 8]],
+        [[0, 6], [6, 2], [8, 8]],
+        [[0, 12], [12, 4]],
+        [[4, 4], [8, 8]],
+      ],
+    },
+    3: {
+      drive: [
+        [[0, 4], [4, 2], [6, 2], [8, 4]],
+        [[0, 2], [2, 2], [4, 4], [8, 4]],
+        [[0, 6], [6, 2], [8, 2], [10, 2]],
+        [[0, 4], [4, 4], [8, 2], [10, 2]],
+      ],
+      float: [
+        [[0, 8], [8, 4]],
+        [[0, 4], [4, 8]],
+        [[0, 6], [6, 6]],
+        [[4, 8]],
+      ],
+    },
   };
-  const CADENCES = [
-    [[0, 4], [4, 4], [8, 8]],
-    [[0, 8], [8, 8]],
-    [[0, 2], [2, 2], [4, 12]],
-  ];
-  // Melodic contours in scale steps between successive notes of a cell.
+  const CADENCES = {
+    4: [[[0, 4], [4, 4], [8, 8]], [[0, 8], [8, 8]], [[0, 2], [2, 2], [4, 12]], [[0, 6], [6, 2], [8, 8]]],
+    3: [[[0, 4], [4, 8]], [[0, 12]], [[0, 2], [2, 2], [4, 8]]],
+  };
+  // Contours in scale steps between successive notes of a cell.
   const SHAPES = [
     [1, 1, 1, -2, -1],
     [2, -1, 2, -1, -1],
@@ -68,77 +88,139 @@
     [1, 1, -1, -1, 1],
     [3, -1, -1, -1, 2],
     [-2, 1, 1, 1, -1],
+    [2, 2, -1, -2, -1],
+    [-1, 2, -1, 2, -3],
+    [4, -1, -1, -2, 1],
   ];
   // Arpeggio orders over chord tones (0 root, 1 third, 2 fifth, 3 seventh, 4 octave).
-  const ARPS = [
-    [0, 1, 2, 3, 4, 3, 2, 1],
-    [0, 2, 1, 3, 2, 4, 3, 1],
-    [0, 1, 2, 4, 2, 1, 3, 2],
-    [0, 2, 4, 2, 1, 3, 4, 3],
-  ];
+  const ARPS = {
+    4: [
+      [0, 1, 2, 3, 4, 3, 2, 1],
+      [0, 2, 1, 3, 2, 4, 3, 1],
+      [0, 1, 2, 4, 2, 1, 3, 2],
+      [0, 2, 4, 2, 1, 3, 4, 3],
+      [4, 2, 3, 1, 2, 0, 1, 2],
+      [0, 4, 2, 4, 1, 4, 3, 4],
+    ],
+    3: [
+      [0, 1, 2, 4, 2, 1],
+      [0, 2, 4, 2, 3, 2],
+      [0, 2, 1, 3, 2, 4],
+      [4, 2, 0, 2, 1, 2],
+    ],
+  };
 
-  /* Each light-cycle phase is its own cue.
-     prog: 4-bar chord loops as scale degrees (0 = I / i).
-     arp16: sixteenth-note arpeggio (false = eighths, for night).
-     bass: "octave" bounces root/octave in eighths, "pulse" drives eighths on
-     the root, "long" holds half notes. drums: "full", "light", or null. */
+  /* Each light-cycle phase: its mode and home tempo, the chord loops, and the
+     pools that each piece draws its instruments, grooves and bass from. */
   const PHASES = {
     "朝": {
-      mode: "lydian", bpm: 104, cells: "drive", arp16: true, bass: "pulse", drums: "light",
-      prog: [[0, 1, 5, 4], [0, 4, 1, 0], [0, 1, 3, 4]],
+      mode: "lydian", bpm: 104, cells: "drive", waltz: 0.25,
+      prog: [[0, 1, 5, 4], [0, 4, 1, 0], [0, 1, 3, 4], [0, 5, 1, 4], [3, 4, 0, 1], [0, 2, 1, 4]],
+      leads: ["pulse", "flute", "bell", "pulse"], arps: ["chip", "pluck", "bell"], pads: ["chip", "organ", "glass"],
+      grooves: ["light", "straight", "halftime", "none"], basses: ["pulse", "long", "walk"],
+      arrs: ["build", "tuneFirst", "bridge", "journey", "interlude"],
       en: "Lydian", jp: "・リディア旋法",
     },
     "日": {
-      mode: "major", bpm: 112, cells: "drive", arp16: true, bass: "octave", drums: "full",
-      prog: [[0, 4, 5, 3], [5, 3, 0, 4], [0, 5, 3, 4], [3, 4, 5, 0], [0, 2, 3, 4]],
+      mode: "major", bpm: 112, cells: "drive", waltz: 0.2,
+      prog: [[0, 4, 5, 3], [5, 3, 0, 4], [0, 5, 3, 4], [3, 4, 5, 0], [0, 2, 3, 4], [0, 3, 4, 3], [0, 5, 1, 4], [3, 0, 4, 5], [0, 1, 3, 4]],
+      leads: ["pulse", "pulse", "saw", "flute", "bell"], arps: ["chip", "pluck", "thin"], pads: ["chip", "organ"],
+      grooves: ["straight", "shuffle", "halftime", "light"], basses: ["octave", "pulse", "walk"],
+      arrs: ["build", "tuneFirst", "bridge", "journey", "build", "interlude"],
       en: "major", jp: "長調",
     },
     "黄昏": {
-      mode: "dorian", bpm: 98, cells: "drive", arp16: true, bass: "pulse", drums: "light",
-      prog: [[0, 3, 0, 3], [0, 6, 3, 4], [5, 6, 0, 0], [0, 2, 3, 6]],
+      mode: "dorian", bpm: 98, cells: "drive", waltz: 0.3,
+      prog: [[0, 3, 0, 3], [0, 6, 3, 4], [5, 6, 0, 0], [0, 2, 3, 6], [0, 3, 6, 0], [3, 6, 0, 4], [0, 6, 5, 6]],
+      leads: ["flute", "bell", "pulse", "saw"], arps: ["pluck", "bell", "chip"], pads: ["organ", "glass", "chip"],
+      grooves: ["light", "halftime", "shuffle", "none"], basses: ["pulse", "long", "walk"],
+      arrs: ["build", "tuneFirst", "bridge", "journey", "interlude"],
       en: "Dorian", jp: "・ドリア旋法",
     },
     "夜": {
-      mode: "minor", bpm: 84, cells: "float", arp16: false, bass: "long", drums: null,
-      prog: [[0, 5, 3, 6], [0, 5, 2, 6], [5, 3, 0, 4], [0, 3, 5, 4]],
+      mode: "minor", bpm: 84, cells: "float", waltz: 0.3,
+      prog: [[0, 5, 3, 6], [0, 5, 2, 6], [5, 3, 0, 4], [0, 3, 5, 4], [0, 6, 5, 4], [0, 2, 5, 6], [3, 0, 6, 5]],
+      leads: ["bell", "flute", "flute", "pulse"], arps: ["bell", "pluck"], pads: ["glass", "organ"],
+      grooves: ["none", "none", "light"], basses: ["long"],
+      arrs: ["interlude", "tuneFirst", "build", "bridge"],
       en: "minor", jp: "短調",
     },
   };
 
-  /* Arrangement: layers enter, drop for a breakdown, return for the ending.
-     8 bars per melody section = the tune twice. */
-  const ARRANGEMENT = [
-    { bars: 4, arp: 1, sweep: [1100, 3600] },
-    { bars: 4, arp: 1, bass: 1, pad: 1 },
-    { bars: 8, arp: 1, bass: 1, pad: 1, mel: 1 },
-    { bars: 8, arp: 1, bass: 1, pad: 1, mel: 1, counter: 1, drums: 1 },
-    { bars: 4, arp: 1, pad: 1, sweep: [1000, 3600] },
-    { bars: 4, arp: 1, bass: 1, pad: 1, mel: 1, drums: 1, ending: 1 },
-  ];
+  /* Arrangements: sections of whole 4-bar chord loops. Flags say which layers
+     play; prog/tune "B" switches to the second theme; shift is a key change in
+     semitones; sweep opens the arpeggio's filter across the section. */
+  const ARRANGEMENTS = {
+    // Arpeggio alone, layers stack up, breakdown, final pass.
+    build: [
+      { bars: 4, arp: 1, sweep: [1100, 3600] },
+      { bars: 4, arp: 1, bass: 1, pad: 1 },
+      { bars: 8, arp: 1, bass: 1, pad: 1, mel: 1 },
+      { bars: 8, arp: 1, bass: 1, pad: 1, mel: 1, counter: 1, drums: 1 },
+      { bars: 4, arp: 1, pad: 1, sweep: [1000, 3600] },
+      { bars: 4, arp: 1, bass: 1, pad: 1, mel: 1, drums: 1, ending: 1 },
+    ],
+    // The tune straight away over pads, then the band, a quiet middle, and back.
+    tuneFirst: [
+      { bars: 4, pad: 1, mel: 1, arp: 1, arpSoft: 1 },
+      { bars: 8, arp: 1, bass: 1, pad: 1, mel: 1, drums: 1 },
+      { bars: 4, arp: 1, pad: 1, counter: 1 },
+      { bars: 8, arp: 1, bass: 1, pad: 1, mel: 1, counter: 1, drums: 1 },
+      { bars: 4, arp: 1, bass: 1, pad: 1, mel: 1, ending: 1 },
+    ],
+    // A theme, a contrasting B theme on new chords, then A again.
+    bridge: [
+      { bars: 4, arp: 1, bass: 1 },
+      { bars: 8, arp: 1, bass: 1, pad: 1, mel: 1 },
+      { bars: 8, arp: 1, bass: 1, pad: 1, mel: 1, drums: 1, prog: "B", tune: "B" },
+      { bars: 8, arp: 1, bass: 1, pad: 1, mel: 1, counter: 1, drums: 1 },
+      { bars: 4, arp: 1, bass: 1, pad: 1, mel: 1, ending: 1 },
+    ],
+    // Longer form that lifts into a new key for its second half.
+    journey: [
+      { bars: 4, arp: 1, sweep: [1100, 3600] },
+      { bars: 8, arp: 1, bass: 1, pad: 1, mel: 1 },
+      { bars: 8, arp: 1, bass: 1, pad: 1, mel: 1, drums: 1 },
+      { bars: 4, arp: 1, pad: 1, sweep: [900, 3600], shift: "mod" },
+      { bars: 8, arp: 1, bass: 1, pad: 1, mel: 1, counter: 1, drums: 1, shift: "mod" },
+      { bars: 4, arp: 1, bass: 1, pad: 1, mel: 1, drums: 1, ending: 1, shift: "mod" },
+    ],
+    // Short and quiet: pads, a soft arpeggio, the tune once or twice, no drums.
+    interlude: [
+      { bars: 4, pad: 1, arp: 1, arpSoft: 1 },
+      { bars: 8, pad: 1, arp: 1, arpSoft: 1, mel: 1, bass: 1 },
+      { bars: 4, pad: 1, mel: 1, ending: 1 },
+    ],
+  };
 
-  /* pH picks the key of each new piece. The CO2 cycle swings pH by most of a
-     unit a day, so pieces drift through the keys: lower while CO2 is on,
-     climbing back overnight. Hysteresis keeps a reading that sits on a
-     boundary from flipping the key every piece. */
+  /* pH sets the key area. The CO2 cycle swings pH by most of a unit a day, so
+     the music drifts through keys: lower while CO2 is on, climbing back
+     overnight. Each piece sits on that key or a neighbour, so consecutive
+     pieces don't all share one key. */
   const BASE_MIDI = 60;                               // C4
   const KEY_OFFSETS = [-3, -1, 0, 2, 4, 5, 7];        // A B C D E F G
   const DEFAULT_KEY = 2;                              // C, until pH arrives
   const PH_LO = 5.6, PH_HI = 7.4;
-  const NOTE_EN = { 0: "C", 2: "D", 4: "E", 5: "F", 7: "G", 9: "A", 11: "B" };
-  const NOTE_JP = { 0: "ハ", 2: "ニ", 4: "ホ", 5: "ヘ", 7: "ト", 9: "イ", 11: "ロ" };
+  const NOTE_EN = ["C", "D♭", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"];
+  const NOTE_JP = ["ハ", "変ニ", "ニ", "変ホ", "ホ", "ヘ", "嬰ヘ", "ト", "変イ", "イ", "変ロ", "ロ"];
+  const FEEL = {
+    en: { straight: "", shuffle: "shuffle", halftime: "half-time", light: "", none: "ambient", waltz: "waltz" },
+    jp: { straight: "", shuffle: "シャッフル", halftime: "ハーフタイム", light: "", none: "アンビエント", waltz: "ワルツ" },
+  };
 
   /* Dissolved oxygen nudges tempo up to ±8 BPM around the phase's own. */
   const DO_LO = 20, DO_HI = 100, DO_MID = 60, BPM_SWING = 8;
 
   const LOOKAHEAD = 1.2;   // seconds of notes scheduled ahead; survives background-tab timer throttling
   const TICK = 0.2;
+  const MEMORY = 3;        // how many recent pieces the chooser tries not to echo
 
   const UI = {
     en: {
       listen: "Listen", playing: "Listening",
       title: "Play retro-synth music composed live from the tank's sensors",
       unsupported: "Sound isn't supported in this browser",
-      main: (key, mode, bpm) => `♪ ${key} ${mode} · ${bpm} BPM`,
+      main: (key, mode, bpm, feel) => `♪ ${key} ${mode} · ${bpm} BPM${feel ? " · " + feel : ""}`,
       rest: "♪ between pieces — the next one is coming",
       map: "pH → key · O₂ → tempo · temp → tone · CO₂ → bubbles",
     },
@@ -146,7 +228,7 @@
       listen: "聴く", playing: "再生中",
       title: "水槽のセンサーからリアルタイムに作曲されるレトロシンセ音楽",
       unsupported: "このブラウザでは音声を再生できません",
-      main: (key, mode, bpm) => `♪ ${key}${mode} · ${bpm} BPM`,
+      main: (key, mode, bpm, feel) => `♪ ${key}${mode} · ${bpm} BPM${feel ? " · " + feel : ""}`,
       rest: "♪ 曲間 — まもなく次の曲",
       map: "pH → 調 · 溶存酸素 → テンポ · 水温 → 音色 · CO₂ → 泡",
     },
@@ -165,14 +247,18 @@
   let lastPiece = null;      // key/mode for bubbles while resting
   let nextPieceAt = 0;
   let nextBubbleAt = 0;
+  const history = [];        // recent pieces' choices, newest last
   const timers = new Set();
 
-  /* ---------- helpers ---------- */
+  /* =======================================================================
+     HELPERS
+     ======================================================================= */
   const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
   const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
   const rand = (lo, hi) => lo + Math.random() * (hi - lo);
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
   const mod7 = (i) => ((i % 7) + 7) % 7;
+  const pc = (m) => ((Math.round(m) % 12) + 12) % 12;
   function num(v) {
     if (v == null || v === "") return null;
     const n = Number(v);
@@ -190,29 +276,57 @@
     for (let i = 0; i < arguments.length - 1; i++) arguments[i].connect(arguments[i + 1]);
     return arguments[arguments.length - 1];
   }
+  // Pick from a pool, avoiding anything the last few pieces used for this
+  // choice, as long as something is left to pick.
+  function pickFresh(pool, key, depth) {
+    const recent = history.slice(-(depth || MEMORY)).map((h) => JSON.stringify(h[key]));
+    const fresh = pool.filter((x) => !recent.includes(JSON.stringify(x)));
+    return pick(fresh.length ? fresh : pool);
+  }
 
-  /* ---------- derived parameters ---------- */
+  /* =======================================================================
+     DERIVED PARAMETERS
+     ======================================================================= */
   function keyIndexFor(ph, current) {
     if (ph == null) return current == null ? DEFAULT_KEY : current;
     const x = (clamp(ph, PH_LO, PH_HI) - PH_LO) / (PH_HI - PH_LO) * (KEY_OFFSETS.length - 1);
     if (current != null && Math.abs(x - current) < 0.8) return current;
     return Math.round(x);
   }
-  function bpmFor(phase) {
+  // The pH key, or a neighbour; never the key of the last piece if avoidable.
+  function chooseKey() {
+    state.keyIdx = keyIndexFor(state.ph, state.keyIdx);
+    const k = state.keyIdx;
+    const pool = [k, k, k - 1, k + 1].filter((i) => i >= 0 && i < KEY_OFFSETS.length);
+    const last = history.length ? history[history.length - 1].keyIdx : null;
+    const fresh = pool.filter((i) => i !== last);
+    return pick(fresh.length ? fresh : pool);
+  }
+  function chooseBpm(phase, meter) {
     const d = state.doPct == null ? DO_MID : clamp(state.doPct, DO_LO, DO_HI);
-    return Math.round(PHASES[phase].bpm + (d - DO_MID) / (DO_HI - DO_MID) * BPM_SWING);
+    const base = PHASES[phase].bpm + (d - DO_MID) / (DO_HI - DO_MID) * BPM_SWING;
+    const last = history.length ? history[history.length - 1].bpm : null;
+    let bpm = 0;
+    for (let tries = 0; tries < 4; tries++) {
+      bpm = Math.round(base * rand(0.92, 1.08) * (meter === 3 ? 0.9 : 1));
+      if (last == null || Math.abs(bpm - last) >= 5) break;
+    }
+    return bpm;
   }
   // Pulse width follows temperature: 12.5% (thin, cool) -> 25% -> 50% (round, warm).
-  function leadWave() {
+  function pulseForTemp() {
     const t = state.tempF == null ? 72 : state.tempF;
     return t < 70.5 ? waves.p12 : t < 74.5 ? waves.p25 : waves.p50;
   }
 
-  /* ---------- chip waveforms ----------
-     Built from their Fourier series, capped at 40 harmonics: enough for the
-     chip character, few enough that high notes don't alias. */
-  function waveFrom(fn) {
-    const L = 1024, H = 40;
+  /* =======================================================================
+     WAVEFORMS
+     Built from their Fourier series with a harmonic cap: enough for the chip
+     character, few enough that high notes don't alias.
+     ======================================================================= */
+  function waveFrom(fn, H) {
+    H = H || 40;
+    const L = 1024;
     const real = new Float32Array(H + 1), imag = new Float32Array(H + 1);
     const x = new Float32Array(L);
     for (let k = 0; k < L; k++) x[k] = fn(k / L);
@@ -229,6 +343,7 @@
     return ctx.createPeriodicWave(real, imag);
   }
   function buildWaves() {
+    const TAU = 2 * Math.PI;
     const pulse = (duty) => (p) => (p < duty ? 1 : -1);
     // The NES triangle is 32 volume steps, not a smooth ramp: that stairstep is its sound.
     const stepTri = (p) => {
@@ -241,6 +356,10 @@
       p25: waveFrom(pulse(0.25)),
       p50: waveFrom(pulse(0.5)),
       tri: waveFrom(stepTri),
+      sine: waveFrom((p) => Math.sin(TAU * p), 2),
+      saw: waveFrom((p) => 1 - 2 * p, 14),                   // capped low: mellow, brassy
+      organ: waveFrom((p) => Math.sin(TAU * p) + 0.55 * Math.sin(2 * TAU * p)
+        + 0.3 * Math.sin(3 * TAU * p) + 0.15 * Math.sin(4 * TAU * p), 6),
     };
   }
 
@@ -261,10 +380,12 @@
     return buf;
   }
 
-  /* ---------- the mixer ----------
-     arp -> its own sweepable lowpass
+  /* =======================================================================
+     MIXER
+     arp -> its own sweepable lowpass; pad -> its own lowpass
      lead, arp, counter -> echo send
-     everything -> mix -> soft lowpass -> dry + reverb -> master -> limiter */
+     everything -> mix -> soft lowpass -> dry + reverb -> master -> limiter
+     ======================================================================= */
   function build() {
     ctx = new AC();
     buildWaves();
@@ -318,10 +439,9 @@
       return g;
     };
 
-    // The arpeggio runs through its own filter so sections can sweep it open.
     const arpFilter = ctx.createBiquadFilter();
     arpFilter.type = "lowpass";
-    arpFilter.frequency.value = 3200;
+    arpFilter.frequency.value = 3600;
     arpFilter.Q.value = 4;
     arpFilter.connect(mix);
 
@@ -339,9 +459,11 @@
     };
   }
 
-  /* ---------- instruments ---------- */
+  /* =======================================================================
+     INSTRUMENTS
+     ======================================================================= */
 
-  // One chip voice with a simple volume envelope and optional delayed vibrato.
+  // One voice with a simple volume envelope and optional delayed vibrato.
   function voice(wave, dest, midi, t, dur, vel, opt) {
     opt = opt || {};
     const f = mtof(midi);
@@ -360,11 +482,11 @@
     chain(o, g, dest);
     if (opt.vibrato && dur > 0.35) {
       const lfo = ctx.createOscillator();
-      lfo.frequency.value = 5.2;
+      lfo.frequency.value = opt.vibRate || 5.2;
       const depth = ctx.createGain();
       depth.gain.setValueAtTime(0, t);
       depth.gain.setValueAtTime(0, t + 0.2);
-      depth.gain.linearRampToValueAtTime(f * 0.006, t + 0.5);
+      depth.gain.linearRampToValueAtTime(f * (opt.vibDepth || 0.006), t + 0.5);
       chain(lfo, depth, o.frequency);
       lfo.start(t);
       lfo.stop(t + dur + rel * 8);
@@ -374,19 +496,60 @@
     o.onended = () => g.disconnect();
   }
 
-  function kick(t) {
+  // Bell: a sine with a quick inharmonic partial on the strike.
+  function bellNote(dest, midi, t, dur, vel) {
+    voice(waves.sine, dest, midi, t, dur, vel, { sustain: 0.3, decay: 0.35, release: 0.45 });
+    voice(waves.sine, dest, midi + 12, t, dur * 0.5, vel * 0.25, { sustain: 0.1, decay: 0.2, release: 0.3 });
+    voice(waves.sine, dest, midi + 17.57, t, 0.05, vel * 0.3, { sustain: 0.01, decay: 0.1, release: 0.12 });
+  }
+
+  // Lead instruments.
+  const LEAD_VOICES = {
+    pulse: (m, t, d, v) => {
+      const w = pulseForTemp();
+      const o = { vibrato: true, sustain: 0.75, release: 0.08 };
+      voice(w, nodes.lead, m, t, d, v, Object.assign({ detune: -5 }, o));
+      voice(w, nodes.lead, m, t, d, v * 0.7, Object.assign({ detune: 6 }, o));
+    },
+    flute: (m, t, d, v) => {
+      voice(waves.tri, nodes.lead, m, t, d, v * 1.7, { attack: 0.04, sustain: 0.85, release: 0.12, vibrato: true, vibDepth: 0.008 });
+    },
+    bell: (m, t, d, v) => bellNote(nodes.lead, m, t, d, v * 1.6),
+    saw: (m, t, d, v) => {
+      voice(waves.saw, nodes.lead, m, t, d, v * 0.8, { attack: 0.015, sustain: 0.7, release: 0.1, vibrato: true, detune: -4 });
+      voice(waves.saw, nodes.lead, m - 12, t, d, v * 0.3, { attack: 0.015, sustain: 0.7, release: 0.1, detune: 4 });
+    },
+  };
+  const ARP_VOICES = {
+    chip: (m, t, d, v) => voice(waves.p25, nodes.arp, m, t, d, v, { sustain: 0.25, decay: 0.06, release: 0.03 }),
+    thin: (m, t, d, v) => voice(waves.p12, nodes.arp, m, t, d, v * 0.9, { sustain: 0.25, decay: 0.06, release: 0.03 }),
+    pluck: (m, t, d, v) => voice(waves.tri, nodes.arp, m, t, d, v * 2, { sustain: 0.1, decay: 0.09, release: 0.05 }),
+    bell: (m, t, d, v) => voice(waves.sine, nodes.arp, m + 12, t, d, v * 1.8, { sustain: 0.15, decay: 0.15, release: 0.2 }),
+  };
+  const PAD_VOICES = {
+    chip: (m, t, d, v) => {
+      voice(waves.p50, nodes.pad, m, t, d, v, { attack: 0.35, sustain: 0.9, decay: 0.5, release: 0.5, detune: -7 });
+      voice(waves.p50, nodes.pad, m, t, d, v, { attack: 0.35, sustain: 0.9, decay: 0.5, release: 0.5, detune: 7 });
+    },
+    organ: (m, t, d, v) => voice(waves.organ, nodes.pad, m, t, d, v * 2.2, { attack: 0.08, sustain: 0.95, decay: 0.3, release: 0.25 }),
+    glass: (m, t, d, v) => {
+      voice(waves.tri, nodes.pad, m + 12, t, d, v * 1.4, { attack: 0.5, sustain: 0.9, decay: 0.6, release: 0.8, detune: -6 });
+      voice(waves.sine, nodes.pad, m, t, d, v * 1.6, { attack: 0.5, sustain: 0.9, decay: 0.6, release: 0.8, detune: 6 });
+    },
+  };
+
+  function kick(t, vel) {
     const o = ctx.createOscillator();
     o.setPeriodicWave(waves.tri);
     o.frequency.setValueAtTime(160, t);
     o.frequency.exponentialRampToValueAtTime(45, t + 0.11);
     const g = ctx.createGain();
-    g.gain.setValueAtTime(0.28, t);
+    g.gain.setValueAtTime(vel || 0.28, t);
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
     chain(o, g, nodes.drums);
     o.start(t);
     o.stop(t + 0.24);
   }
-
   function noiseHit(t, vel, type, freq, decay) {
     const src = ctx.createBufferSource();
     src.buffer = nodes.noise;
@@ -401,12 +564,12 @@
     src.stop(t + decay + 0.02);
   }
   const hat = (t, vel) => noiseHit(t, vel, "highpass", 7500, 0.04);
-  const snare = (t) => noiseHit(t, 0.07, "bandpass", 1900, 0.13);
+  const snare = (t, vel) => noiseHit(t, vel || 0.07, "bandpass", 1900, 0.13);
 
   // CO2 bubble: a two-step upward blip, in the key of whatever is playing.
   function bubble(t) {
     const p = piece || lastPiece;
-    const root = p ? p.root : BASE_MIDI;
+    const root = p ? p.rootNow : BASE_MIDI;
     const mode = MODES[p ? p.modeName : "major"];
     const deg = pick([0, 2, 4, 4, 7, 9]);
     const midi = root + 24 + mode[mod7(deg)] + (deg >= 7 ? 12 : 0);
@@ -427,20 +590,22 @@
     });
   }
 
-  /* ---------- the composer ----------
+  /* =======================================================================
+     COMPOSER
      Melodies live in scale-index space (7 = the octave above the key root).
-     A tune is four bars: one rhythm cell and one contour, stated on each of
+     A tune is four bars: one rhythm cell and one contour stated on each of
      the first three chords (so it sequences with the harmony), then a
-     cadence bar. It is written once and repeated, which is what makes it
-     heard as a tune. */
+     cadence. Its "answer" turns the contour upside down for bars two and
+     three, so a repeat can be varied without losing the tune.
+     ======================================================================= */
 
   function idxToMidi(root, mode, i) {
     return root + 12 * Math.floor(i / 7) + mode[mod7(i)];
   }
   function snapToChord(i, deg) {
     const tones = [mod7(deg), mod7(deg + 2), mod7(deg + 4)];
-    for (let d = 0; d <= 3; d++) {
-      if (tones.includes(mod7(i)) && d === 0) return i;
+    if (tones.includes(mod7(i))) return i;
+    for (let d = 1; d <= 3; d++) {
       if (tones.includes(mod7(i + d))) return i + d;
       if (tones.includes(mod7(i - d))) return i - d;
     }
@@ -449,15 +614,12 @@
 
   const MEL_LO = 5, MEL_HI = 14;
 
-  function writeTune(P, prog) {
-    const cell = pick(CELLS[P.cells]);
-    const shape = pick(SHAPES);
-    const anchor = pick([8, 9, 10]);
+  function writeBars(cell, shape, anchor, prog) {
     const bars = [];
     for (let b = 0; b < 3; b++) {
       const deg = prog[b];
       let idx = snapToChord(anchor, deg);
-      const notes = cell.map(([s, l], n) => {
+      bars.push(cell.map(([s, l], n) => {
         if (n > 0) {
           let step = shape[(n - 1) % shape.length];
           if (idx + step > MEL_HI || idx + step < MEL_LO) step = -step;
@@ -465,32 +627,70 @@
           if (s % 8 === 0) idx = snapToChord(idx, deg);   // strong beats sit on the chord
         }
         return { s, l, idx };
-      });
-      bars.push(notes);
+      }));
     }
-    // Two endings: "open" lands on a tone of the 4th chord and leads back in;
-    // "home" resolves to the key note. The tune plays open, then home.
-    const cad = pick(CADENCES);
+    return bars;
+  }
+
+  function writeTune(P, prog, meter, avoidCell) {
+    const pool = CELLS[meter][P.cells];
+    const cells = pool.filter((c) => c !== avoidCell);
+    const cell = pick(cells.length ? cells : pool);
+    const shape = pick(SHAPES);
+    const anchor = pick([8, 9, 10]);
+    const bars = writeBars(cell, shape, anchor, prog);
+    const answer = writeBars(cell, shape.map((x) => -x), anchor, prog);
+    const cad = pick(CADENCES[meter]);
     const cadence = (target) => cad.map(([s, l], n) => ({ s, l, idx: target + (cad.length - 1 - n) }));
-    const lastDeg = prog[3];
-    const open = cadence(snapToChord(anchor - 1, lastDeg));
-    const home = cadence(7);
-    return { bars, open, home };
+    return {
+      cell, bars, answer,
+      open: cadence(snapToChord(anchor - 1, prog[3])),   // leads back in
+      home: cadence(7),                                   // resolves to the key note
+    };
+  }
+
+  function composeChoices() {
+    const phaseKey = state.phase;
+    const P = PHASES[phaseKey];
+    const meter = Math.random() < P.waltz ? 3 : 4;
+    let groove = pickFresh(P.grooves, "groove", 1);
+    if (meter === 3) groove = groove === "none" ? "none" : "waltz";
+    const arrName = pickFresh(P.arrs, "arr");
+    let bassStyle = pickFresh(P.basses, "bass", 1);
+    if (groove === "none" && bassStyle !== "long" && Math.random() < 0.6) bassStyle = "long";
+    return {
+      phaseKey, meter, groove, arrName, bassStyle,
+      lead: pickFresh(P.leads, "lead", 1),
+      arpVoice: pickFresh(P.arps, "arpVoice", 1),
+      padVoice: pickFresh(P.pads, "padVoice", 1),
+      progA: pickFresh(P.prog, "progA"),
+      arpOrder: pick(ARPS[meter]),
+      // 16th-note arpeggios drive; shuffle, waltz and night want eighths.
+      arp16: P.cells === "drive" && groove !== "shuffle" && meter === 4 && Math.random() < 0.8,
+      varyRepeat: Math.random() < 0.6,
+      keyIdx: chooseKey(),
+      modShift: pick([2, 5, -3, 3]),
+    };
   }
 
   function compose(t0) {
-    const phaseKey = state.phase;
-    const P = PHASES[phaseKey];
+    const c = composeChoices();
+    const P = PHASES[c.phaseKey];
     const mode = MODES[P.mode];
-    state.keyIdx = keyIndexFor(state.ph, state.keyIdx);
-    const root = BASE_MIDI + KEY_OFFSETS[state.keyIdx];
-    const bpm = bpmFor(phaseKey);
+    const root0 = BASE_MIDI + KEY_OFFSETS[c.keyIdx];
+    const bpm = chooseBpm(c.phaseKey, c.meter);
     const beat = 60 / bpm;
-    const bar = beat * 4;
+    const slots = c.meter * 4;                     // sixteenths per bar
+    const bar = beat * c.meter;
     const s16 = beat / 4;
-    const prog = pick(P.prog);
-    const tune = writeTune(P, prog);
-    const arpOrder = pick(ARPS);
+    const swing = c.groove === "shuffle";
+    // Swung eighths land two-thirds of the way through the beat, not halfway.
+    const at = (barT, slot) => barT + slot * s16 + (swing && slot % 4 === 2 ? beat / 6 : 0);
+
+    const progB = pick(P.prog.filter((p) => p !== c.progA));
+    const tuneA = writeTune(P, c.progA, c.meter);
+    const tuneB = writeTune(P, progB, c.meter, tuneA.cell);
+    const sections = ARRANGEMENTS[c.arrName];
     const events = [];
     const add = (ev) => events.push(ev);
 
@@ -500,46 +700,67 @@
     af.setValueAtTime(3600, t0);
 
     let barNo = 0;
-    ARRANGEMENT.forEach((sec) => {
+    let shiftAt = null;
+    sections.forEach((sec) => {
       const secT = t0 + barNo * bar;
+      const shift = sec.shift === "mod" ? c.modShift : 0;
+      if (shift && shiftAt == null) shiftAt = secT;
+      const root = root0 + shift;
+      const prog = sec.prog === "B" ? progB : c.progA;
+      const tune = sec.tune === "B" ? tuneB : tuneA;
       if (sec.sweep) {
         af.setValueAtTime(sec.sweep[0], secT);
         af.exponentialRampToValueAtTime(sec.sweep[1], secT + sec.bars * bar);
       }
+
       for (let b = 0; b < sec.bars; b++) {
         const barT = t0 + (barNo + b) * bar;
         const inLoop = b % 4;
         const lastBar = sec.ending && b === sec.bars - 1;
         const deg = lastBar ? 0 : prog[inLoop];
+        const nextDeg = lastBar ? 0 : prog[(inLoop + 1) % 4];
 
-        // Arpeggio: the pulse of the whole piece.
+        // Arpeggio.
         if (sec.arp) {
           const tones = [0, 2, 4, 6, 7].map((k) => idxToMidi(root - 12, mode, deg + k) + (deg >= 4 ? 0 : 12));
-          const steps = P.arp16 ? 16 : 8;
-          const len = P.arp16 ? s16 : s16 * 2;
-          for (let s = 0; s < steps; s++) {
-            if (lastBar && s >= steps / 2) break;
+          const step = c.arp16 ? 1 : 2;
+          const soft = sec.arpSoft ? 0.6 : sec.bass ? 1 : 1.8;   // carries intros alone
+          for (let s = 0, n = 0; s < slots; s += step, n++) {
+            if (lastBar && s >= slots / 2) break;
             const accent = s % 4 === 0 ? 1.25 : 1;
-            const alone = sec.bass ? 1 : 1.8;        // carries the intro and breakdown by itself
-            add({ t: barT + s * len, dur: len * 0.8, v: "arp", m: tones[arpOrder[s % 8]], vel: 0.04 * accent * alone });
+            add({ t: at(barT, s), dur: s16 * step * 0.8, v: "arp", m: tones[c.arpOrder[n % c.arpOrder.length]], vel: 0.04 * accent * soft });
           }
         }
 
         // Bass.
         if (sec.bass) {
-          const r = idxToMidi(root - 24, mode, deg) + (idxToMidi(root - 24, mode, deg) < root - 22 ? 12 : 0);
-          if (P.bass === "long" || lastBar) {
-            add({ t: barT, dur: (lastBar ? 16 : 8) * s16 * 0.95, v: "bass", m: r, vel: 0.2 });
-            if (!lastBar) add({ t: barT + 8 * s16, dur: 8 * s16 * 0.95, v: "bass", m: r + 7, vel: 0.17 });
+          let r = idxToMidi(root - 24, mode, deg);
+          if (r < root - 22) r += 12;
+          if (c.bassStyle === "long" || lastBar) {
+            if (c.meter === 3 || lastBar) {
+              add({ t: barT, dur: bar * 0.95, v: "bass", m: r, vel: 0.2 });
+            } else {
+              add({ t: barT, dur: 8 * s16 * 0.95, v: "bass", m: r, vel: 0.2 });
+              add({ t: barT + 8 * s16, dur: 8 * s16 * 0.95, v: "bass", m: r + 7, vel: 0.17 });
+            }
+          } else if (c.bassStyle === "walk") {
+            // Quarter notes through the chord, stepping into the next root.
+            const tones = [deg, deg + 2, deg + 4];
+            for (let q = 0; q < c.meter; q++) {
+              const idx = q === c.meter - 1 ? nextDeg - 1 : tones[q % 3];
+              let m = idxToMidi(root - 24, mode, idx);
+              if (m < root - 22) m += 12;
+              add({ t: at(barT, q * 4), dur: 4 * s16 * 0.85, v: "bass", m, vel: q === 0 ? 0.2 : 0.16 });
+            }
           } else {
-            for (let e = 0; e < 8; e++) {
-              const up = P.bass === "octave" && e % 2 === 1;
-              add({ t: barT + e * 2 * s16, dur: 2 * s16 * 0.7, v: "bass", m: r + (up ? 12 : 0), vel: e % 2 ? 0.14 : 0.19 });
+            for (let e = 0; e < slots / 2; e++) {
+              const up = c.bassStyle === "octave" && e % 2 === 1;
+              add({ t: at(barT, e * 2), dur: 2 * s16 * 0.7, v: "bass", m: r + (up ? 12 : 0), vel: e % 2 ? 0.14 : 0.19 });
             }
           }
         }
 
-        // Pad: the chord held under everything, soft attack.
+        // Pad.
         if (sec.pad) {
           [0, 2, 4, 6].forEach((k) => {
             const m = idxToMidi(root - 12, mode, deg + k) + (deg >= 3 ? 0 : 12);
@@ -547,35 +768,55 @@
           });
         }
 
-        // Melody: tune bars 1-3, then the open ending the first time round and
-        // the home ending the second; the final bar holds the key note.
+        // Melody: the tune (or its answer on a varied repeat), with the open
+        // ending the first time and the home ending the second.
         if (sec.mel) {
+          const second = Math.floor(b / 4) % 2 === 1;
           let notes;
-          if (lastBar) notes = [{ s: 0, l: 16, idx: 7 }];
-          else if (inLoop < 3) notes = tune.bars[inLoop];
-          else notes = (Math.floor(b / 4) % 2 === 0 && !sec.ending) ? tune.open : tune.home;
+          if (lastBar) notes = [{ s: 0, l: slots, idx: 7 }];
+          else if (inLoop < 3) notes = (second && c.varyRepeat && inLoop > 0) ? tune.answer[inLoop] : tune.bars[inLoop];
+          else notes = second ? tune.home : tune.open;
           notes.forEach((n) => add({
-            t: barT + n.s * s16, dur: n.l * s16 * 0.9, v: "lead",
+            t: at(barT, n.s), dur: n.l * s16 * 0.9, v: "lead",
             m: idxToMidi(root, mode, n.idx), vel: 0.075,
           }));
         }
 
-        // Counter-line: long tones a register above, answering the tune.
+        // Counter-line: a long tone a register above, answering the tune.
         if (sec.counter) {
           const hi = snapToChord(15, deg);
-          add({ t: barT + 8 * s16, dur: 8 * s16 * 0.9, v: "counter", m: idxToMidi(root, mode, hi), vel: 0.03 });
+          add({ t: barT + (slots / 2) * s16, dur: (slots / 2) * s16 * 0.9, v: "counter", m: idxToMidi(root, mode, hi), vel: 0.03 });
         }
 
         // Drums.
-        if (sec.drums && P.drums && !lastBar) {
-          for (let s = 0; s < 16; s += 2) {
-            const t = barT + s * s16;
-            if (P.drums === "full") {
-              if (s === 0 || s === 8 || (s === 10 && b % 2)) add({ t, v: "kick" });
-              if (s === 4 || s === 12) add({ t, v: "snare" });
+        if (sec.drums && c.groove !== "none" && !lastBar) {
+          for (let s = 0; s < slots; s += 2) {
+            const t = at(barT, s);
+            switch (c.groove) {
+              case "straight":
+                if (s === 0 || s === 8 || (s === 10 && b % 2)) add({ t, v: "kick" });
+                if (s === 4 || s === 12) add({ t, v: "snare" });
+                add({ t, v: "hat", vel: s % 4 === 2 ? 0.035 : 0.015 });
+                break;
+              case "shuffle":
+                if (s === 0 || s === 8) add({ t, v: "kick" });
+                if (s === 4 || s === 12) add({ t, v: "snare", vel: 0.06 });
+                add({ t, v: "hat", vel: s % 4 === 2 ? 0.03 : 0.02 });
+                break;
+              case "halftime":
+                if (s === 0 || (s === 6 && b % 2)) add({ t, v: "kick" });
+                if (s === 8) add({ t, v: "snare" });
+                add({ t, v: "hat", vel: s % 4 === 2 ? 0.03 : 0.012 });
+                break;
+              case "waltz":
+                if (s === 0) add({ t, v: "kick", vel: 0.24 });
+                if (s === 4 || s === 8) add({ t, v: "hat", vel: 0.03 });
+                if (s === 8 && b % 2) add({ t, v: "snare", vel: 0.04 });
+                break;
+              case "light":
+                if (s % 4 === 2) add({ t, v: "hat", vel: 0.03 });
+                break;
             }
-            if (s % 4 === 2) add({ t, v: "hat", vel: 0.035 });
-            else if (P.drums === "full") add({ t, v: "hat", vel: 0.015 });
           }
         }
       }
@@ -584,39 +825,40 @@
 
     events.sort((a, b) => a.t - b.t);
     const end = t0 + barNo * bar + 2.5;       // let echo and reverb ring out
-    return { events, i: 0, end, root, bpm, modeName: P.mode, phaseKey };
+    const summary = {
+      arr: c.arrName, groove: c.groove, bass: c.bassStyle, lead: c.lead, arpVoice: c.arpVoice,
+      padVoice: c.padVoice, progA: c.progA, keyIdx: c.keyIdx, bpm, meter: c.meter,
+    };
+    history.push(summary);
+    if (history.length > 8) history.shift();
+    return {
+      events, i: 0, end, bpm, modeName: P.mode, phaseKey: c.phaseKey,
+      root: root0, rootNow: root0, shiftAt, shift: c.modShift,
+      lead: c.lead, arpVoice: c.arpVoice, padVoice: c.padVoice,
+      feel: c.meter === 3 ? "waltz" : c.groove, summary,
+    };
   }
 
   function play(ev) {
     switch (ev.v) {
-      case "lead": {
-        // Two pulses a few cents apart: chip tone, but fuller.
-        const w = leadWave();
-        const o = { vibrato: true, sustain: 0.75, release: 0.08 };
-        voice(w, nodes.lead, ev.m, ev.t, ev.dur, ev.vel, Object.assign({ detune: -5 }, o));
-        voice(w, nodes.lead, ev.m, ev.t, ev.dur, ev.vel * 0.7, Object.assign({ detune: 6 }, o));
-        break;
-      }
+      case "lead": LEAD_VOICES[piece.lead](ev.m, ev.t, ev.dur, ev.vel); break;
+      case "arp": ARP_VOICES[piece.arpVoice](ev.m, ev.t, ev.dur, ev.vel); break;
+      case "pad": PAD_VOICES[piece.padVoice](ev.m, ev.t, ev.dur, ev.vel); break;
       case "counter":
         voice(waves.p50, nodes.counter, ev.m, ev.t, ev.dur, ev.vel, { vibrato: true, attack: 0.08, sustain: 0.8, release: 0.2 });
-        break;
-      case "arp":
-        voice(waves.p25, nodes.arp, ev.m, ev.t, ev.dur, ev.vel, { sustain: 0.25, decay: 0.06, release: 0.03 });
-        break;
-      case "pad":
-        voice(waves.p50, nodes.pad, ev.m, ev.t, ev.dur, ev.vel, { attack: 0.35, sustain: 0.9, decay: 0.5, release: 0.5, detune: -7 });
-        voice(waves.p50, nodes.pad, ev.m, ev.t, ev.dur, ev.vel, { attack: 0.35, sustain: 0.9, decay: 0.5, release: 0.5, detune: 7 });
         break;
       case "bass":
         voice(waves.tri, nodes.bass, ev.m, ev.t, ev.dur, ev.vel, { sustain: 0.85, decay: 0.2, release: 0.04 });
         break;
-      case "kick": kick(ev.t); break;
-      case "snare": snare(ev.t); break;
+      case "kick": kick(ev.t, ev.vel); break;
+      case "snare": snare(ev.t, ev.vel); break;
       case "hat": hat(ev.t, ev.vel); break;
     }
   }
 
-  /* ---------- scheduler ---------- */
+  /* =======================================================================
+     SCHEDULER
+     ======================================================================= */
   function restSeconds() {
     return rand(4, 9) * (state.phase === "夜" ? 1.5 : 1);
   }
@@ -633,6 +875,11 @@
     if (piece) {
       while (piece.i < piece.events.length && piece.events[piece.i].t < now + LOOKAHEAD) {
         play(piece.events[piece.i++]);
+      }
+      // A journey piece changes key partway: update the status line when it does.
+      if (piece.shiftAt != null && piece.rootNow === piece.root && now >= piece.shiftAt) {
+        piece.rootNow = piece.root + piece.shift;
+        render();
       }
       if (piece.i >= piece.events.length && now >= piece.end) {
         nextPieceAt = now + restSeconds();
@@ -652,7 +899,9 @@
     after(TICK, loop);
   }
 
-  /* ---------- start / stop ---------- */
+  /* =======================================================================
+     START / STOP
+     ======================================================================= */
   function start() {
     if (!AC) return;
     if (!ctx) build();
@@ -689,7 +938,9 @@
     render();
   }
 
-  /* ---------- UI ---------- */
+  /* =======================================================================
+     UI
+     ======================================================================= */
   let btn = null, label = null, status = null, statusMain = null, statusMap = null;
 
   function render() {
@@ -704,10 +955,10 @@
     if (statusMain) {
       if (piece) {
         const P = PHASES[piece.phaseKey];
-        const pc = ((piece.root % 12) + 12) % 12;
-        statusMain.textContent = state.lang === "jp"
-          ? u.main(NOTE_JP[pc], P.jp, piece.bpm)
-          : u.main(NOTE_EN[pc], P.en, piece.bpm);
+        const k = pc(piece.rootNow);
+        const jp = state.lang === "jp";
+        statusMain.textContent = u.main(jp ? NOTE_JP[k] : NOTE_EN[k], jp ? P.jp : P.en, piece.bpm,
+          FEEL[jp ? "jp" : "en"][piece.feel]);
       } else {
         statusMain.textContent = u.rest;
       }
@@ -730,7 +981,9 @@
     render();
   }
 
-  /* ---------- public API ---------- */
+  /* =======================================================================
+     PUBLIC API
+     ======================================================================= */
   window.ElysiumSound = {
     setTelemetry(d) {
       d = d || {};
@@ -757,6 +1010,19 @@
     isPlaying: () => running,
     // Exposed for recording previews and debugging; not needed by the page.
     _audio: () => (ctx && nodes ? { ctx, output: nodes.limiter } : null),
+    _history: () => history.slice(),
+    // Compose without playing, to audit variety. Needs start() first.
+    _dryCompose: () => {
+      const t0 = ctx.currentTime + 1000;
+      const p = compose(t0);
+      const ms = p.events.filter((e) => e.m != null).map((e) => e.m);
+      const bad = p.events.filter((e) => !Number.isFinite(e.t) || (e.m != null && !Number.isFinite(e.m))).length;
+      return Object.assign({}, p.summary, {
+        seconds: Math.round(p.end - t0), notes: p.events.length, bad,
+        lo: Math.min.apply(null, ms), hi: Math.max.apply(null, ms),
+        leadNotes: p.events.filter((e) => e.v === "lead").length,
+      });
+    },
   };
 
   if (document.readyState === "loading") {
