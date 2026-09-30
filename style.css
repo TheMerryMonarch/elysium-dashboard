@@ -555,18 +555,6 @@ main {
 }
 @keyframes flash { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
 
-.dn-legend {
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-    margin-top: 18px;
-    font-size: 13px;
-    color: #cbb8e0;
-}
-.dn-legend b { font-weight: 700; margin-right: 6px; font-size: 15px; }
-.dc ~ .dn-legend { justify-content: center; margin-top: 4px; gap: 14px; }
-.dn-legend-co2 { color: #7fffd0; }
-.dn-legend-co2 b { letter-spacing: 1px; }
 .dc ~ .dn-sound { align-items: center; text-align: center; margin-top: -6px; }
 
 /* ==============
