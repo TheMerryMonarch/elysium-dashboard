@@ -185,6 +185,8 @@ header {
 
 @media (prefers-reduced-motion: reduce) {
     .sound-toggle[aria-pressed="true"] .sound-bars i { animation: none; }
+    .dc-co2.on, .dn-bub i, .dn-notice { animation: none; }
+    .dn-bub i { opacity: 0.9; }
 }
 
 /* ==============
@@ -403,26 +405,83 @@ main {
     margin: 2.4rem auto 0;
 }
 
-.dn {
-    display: inline-flex;
-    align-items: center;
-    gap: 16px;
-}
+/* ==============
+   DAY CLOCK
+   The light + CO2 timers on a dial that turns so "now" sits at the top.
+   ============== */
 
+.dc {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+    aspect-ratio: 1 / 1;
+    container-type: inline-size;
+}
+.dc-ring {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+.dc-track { fill: none; stroke: rgba(255, 255, 255, 0.05); stroke-width: 18; }
+.dc-band { fill: none; stroke-width: 14; }
+.dc-band-n { stroke: #4deeea; stroke-opacity: 0.2; }
+.dc-band-m { stroke: #b8a9ff; stroke-opacity: 0.85; }
+.dc-band-d { stroke: #ffd86b; filter: drop-shadow(0 0 6px rgba(255, 216, 107, 0.5)); }
+.dc-band-t { stroke: #ff6ac1; filter: drop-shadow(0 0 6px rgba(255, 106, 193, 0.5)); }
+.dc-ticks { fill: none; stroke: #5f5485; stroke-width: 1.5; }
+.dc-co2-track { fill: none; stroke: rgba(127, 255, 208, 0.07); stroke-width: 6; }
+.dc-co2 {
+    fill: none;
+    stroke: #7fffd0;
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-dasharray: 0 9;          /* round caps on zero-length dashes = a line of bubbles */
+    opacity: 0.35;
+    filter: drop-shadow(0 0 4px rgba(127, 255, 208, 0.6));
+}
+.dc-co2.on { opacity: 1; animation: dcBubbles 1.4s linear infinite; }
+@keyframes dcBubbles { to { stroke-dashoffset: -18; } }
+.dc-past { fill: none; stroke: #0d0720; stroke-opacity: 0.6; stroke-width: 20; }
+.dc-past-co2 { stroke-width: 10; }
+.dc-needle { stroke: #f9eaff; stroke-width: 2; stroke-linecap: round; }
+.dc-notch { fill: #f9eaff; }
+.dc-orb { filter: drop-shadow(0 0 9px currentColor); transition: fill 0.8s; }
+.dc-orb-core { fill: #ffffff; }
+
+.dc-now,
+.dc-hour {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: #9a8fc0;
+    white-space: nowrap;
+    pointer-events: none;
+}
+.dc-now { left: 50%; top: 3.75%; letter-spacing: 0.2em; color: #e6d8ff; }
+.dc-hour[hidden] { display: none; }
+
+.dc-center {
+    position: absolute;
+    left: 50%;
+    top: 52.08%;                    /* the dial's centre: 250 / 480 */
+    transform: translate(-50%, -50%);
+    width: 58%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(3px, 1.4cqw, 7px);
+    text-align: center;
+}
 .dn-kanji {
     font-size: 58px;
     line-height: 1;
     font-weight: 700;
     transition: color 0.8s, text-shadow 0.8s;
 }
-
-.dn-right {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    align-items: flex-start;
-}
-
 .dn-time {
     font-size: 21px;
     font-weight: 600;
@@ -432,17 +491,35 @@ main {
 }
 .dn-ct { font-size: 13px; color: #9a8fc0; margin-left: 6px; letter-spacing: 0.12em; }
 
-.dn-co2 {
+.dc .dn-kanji { font-size: clamp(52px, 20cqw, 100px); }
+.dc .dn-kanji.dn-kanji-pair { font-size: clamp(38px, 14.5cqw, 72px); }
+.dc .dn-time { font-size: clamp(16px, 4.6cqw, 21px); }
+.dc-en {
+    margin: -2px 0 3px;
+    font-size: clamp(11px, 2.9cqw, 13px);
+    letter-spacing: 0.24em;
+    text-shadow: 0 0 8px currentColor;
+    transition: color 0.8s;
+}
+.dc-next,
+.dc-co2-line {
+    font-size: clamp(11px, 2.7cqw, 12px);
+    letter-spacing: 0.04em;
+    color: #cbb8e0;
+}
+.dc-next b { margin-right: 2px; font-size: 1.15em; }
+.dc-co2-line {
     display: inline-flex;
     align-items: center;
-    gap: 9px;
-}
-.dn-co2-txt {
-    font-size: 13px;
-    letter-spacing: 0.06em;
+    gap: 4px;
     color: #7fffd0;
-    text-shadow: 0 0 8px rgba(127, 255, 208, 0.5);
 }
+.dc-next[hidden],
+.dc-co2-line[hidden],
+.dc .dn-notice[hidden],
+.dc .dn-bub[hidden] { display: none; }
+.dc .dn-notice { margin-top: 4px; font-size: clamp(12px, 3.1cqw, 14px); }
+
 .dn-bub {
     position: relative;
     display: inline-block;
@@ -487,6 +564,10 @@ main {
     color: #cbb8e0;
 }
 .dn-legend b { font-weight: 700; margin-right: 6px; font-size: 15px; }
+.dc ~ .dn-legend { justify-content: center; margin-top: 4px; gap: 14px; }
+.dn-legend-co2 { color: #7fffd0; }
+.dn-legend-co2 b { letter-spacing: 1px; }
+.dc ~ .dn-sound { align-items: center; text-align: center; margin-top: -6px; }
 
 /* ==============
    SPECS

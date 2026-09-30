@@ -116,26 +116,52 @@
   <div class="compact-row">
     <div class="compact-left">
 
-      <!-- Day / night -->
-      <div class="dn">
-        <span class="dn-kanji" id="kanji">日</span>
-        <div class="dn-right">
+      <!-- Day clock: the light and CO2 timers on a dial that turns so "now"
+           always sits under the marker at the top. Drawn by renderDayClock(). -->
+      <div class="dc" id="dayclock">
+        <svg class="dc-ring" viewBox="0 0 480 480" aria-hidden="true" focusable="false">
+          <circle class="dc-track" cx="240" cy="250" r="170"/>
+          <path class="dc-band dc-band-n" id="dc-n1"/>
+          <path class="dc-band dc-band-n" id="dc-n2"/>
+          <path class="dc-band dc-band-m" id="dc-m"/>
+          <path class="dc-band dc-band-d" id="dc-d"/>
+          <path class="dc-band dc-band-t" id="dc-t"/>
+          <path class="dc-ticks" id="dc-ticks"/>
+          <circle class="dc-co2-track" cx="240" cy="250" r="144"/>
+          <path class="dc-co2" id="dc-co2"/>
+          <path class="dc-past" id="dc-past"/>
+          <path class="dc-past dc-past-co2" id="dc-past-co2"/>
+          <line class="dc-needle" x1="240" y1="58" x2="240" y2="116"/>
+          <path class="dc-notch" d="M232 44 L248 44 L240 56 Z"/>
+          <circle class="dc-orb" id="dc-orb" cx="240" cy="80" r="10"/>
+          <circle class="dc-orb-core" cx="240" cy="80" r="3.5"/>
+        </svg>
+        <span class="dc-now" data-en="NOW" data-jp="いま">NOW</span>
+        <span class="dc-hour" id="dc-h0"  data-en="12a" data-jp="0時">12a</span>
+        <span class="dc-hour" id="dc-h6"  data-en="6a"  data-jp="6時">6a</span>
+        <span class="dc-hour" id="dc-h12" data-en="12p" data-jp="12時">12p</span>
+        <span class="dc-hour" id="dc-h18" data-en="6p"  data-jp="18時">6p</span>
+        <div class="dc-center">
+          <span class="dn-kanji" id="kanji">日</span>
+          <span class="dc-en" id="phase-en">daytime</span>
           <div class="dn-time" id="time">—<span class="dn-ct">CT</span></div>
-          <span class="dn-co2" id="co2" style="display:none">
-            <span class="dn-bub"><i></i><i></i><i></i></span>
-            <span class="dn-co2-txt">CO2: online</span>
-          </span>
-          <div class="dn-notice" id="notice" style="display:none"></div>
-          <div class="dn-sound" id="sound-now" hidden>
-            <span class="dn-sound-main"></span>
+          <div class="dc-next" id="dc-next"></div>
+          <div class="dc-co2-line" id="dc-co2-line">
+            <span class="dn-bub" id="dc-bub" hidden><i></i><i></i><i></i></span>
+            <span id="dc-co2-txt"></span>
           </div>
+          <div class="dn-notice" id="notice" hidden></div>
         </div>
       </div>
+      <div class="dn-sound" id="sound-now" hidden>
+        <span class="dn-sound-main"></span>
+      </div>
       <div class="dn-legend">
-        <span><b style="color:#ffd86b">日</b> daytime</span>
-        <span><b style="color:#ff6ac1">黄昏</b> twilight</span>
-        <span><b style="color:#4deeea">夜</b> night</span>
-        <span><b style="color:#b8a9ff">朝</b> morning</span>
+        <span><b style="color:#b8a9ff">朝</b> <span data-en="morning" data-jp="あさ">morning</span></span>
+        <span><b style="color:#ffd86b">日</b> <span data-en="lights on" data-jp="点灯">lights on</span></span>
+        <span><b style="color:#ff6ac1">黄昏</b> <span data-en="twilight" data-jp="たそがれ">twilight</span></span>
+        <span><b style="color:#4deeea;opacity:0.55">夜</b> <span data-en="lights out" data-jp="消灯">lights out</span></span>
+        <span class="dn-legend-co2"><b>•••</b> CO₂</span>
       </div>
 
       <!-- Gear / specs -->
@@ -354,6 +380,13 @@ function applyLanguage() {
   if (dl) dl.textContent = t.doLabel;
 
   document.querySelector(".lang-toggle").textContent = t.button;
+
+  // Small static labels carry both languages on the element itself.
+  document.querySelectorAll("[data-en]").forEach((el) => {
+    el.textContent = el.dataset[currentLang] || el.dataset.en;
+  });
+  // The day clock's phase caption, countdowns and notices are built in code.
+  if (typeof updateLightCycle === "function") updateLightCycle();
 
   if (window.ElysiumSound) ElysiumSound.setLang(currentLang);
 }
@@ -834,84 +867,170 @@ function centralNowMinutes() {
   return h * 60 + get("minute");
 }
 
-// Tank location — Chicago, IL (latitude, west-positive longitude)
-const TANK_LAT = 41.8781, TANK_LNG_W = 87.6298;
-
-// minutes-of-day (Central time) for a given Date
-function centralMinutesOf(d) {
-  const p = new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(d);
-  const get = (t) => parseInt(p.find(x => x.type === t).value, 10);
-  let h = get("hour"); if (h === 24) h = 0;
-  return h * 60 + get("minute");
-}
-
-// Sunrise for `date`, as minutes-past-midnight Central time (NOAA solar algorithm)
-function sunriseCentralMinutes(date) {
-  const rad = Math.PI / 180;
-  const y = date.getUTCFullYear(), mo = date.getUTCMonth(), da = date.getUTCDate();
-  const doy = Math.floor((Date.UTC(y, mo, da) - Date.UTC(y, 0, 0)) / 86400000);
-  const g = (2 * Math.PI / 365) * (doy - 1);
-  const eq = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
-  const dec = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g) - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
-  let cosH = Math.cos(90.833 * rad) / (Math.cos(TANK_LAT * rad) * Math.cos(dec)) - Math.tan(TANK_LAT * rad) * Math.tan(dec);
-  cosH = Math.max(-1, Math.min(1, cosH));
-  const HA = Math.acos(cosH) / rad;
-  const tmin = 720 + 4 * (TANK_LNG_W - HA) - eq;       // minutes past 00:00 UTC
-  return centralMinutesOf(new Date(Date.UTC(y, mo, da) + tmin * 60000));
-}
-
 function tickClock() {
   const el = document.getElementById("time");
   if (!el) return;
   el.innerHTML = new Date().toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" }) + '<span class="dn-ct">CT</span>';
 }
 
+// The tank's timers, in Central-time minutes past midnight. The light and the
+// CO2 solenoid run on fixed schedules -- keep these in step with them.
+const SCHEDULE = {
+  co2On:    12 * 60 + 30,   // 12:30pm  CO2 on
+  morning:  13 * 60,        //  1:00pm  lights start ramping up
+  day:      14 * 60,        //  2:00pm  full light
+  co2Off:   19 * 60 + 30,   //  7:30pm  CO2 off
+  twilight: 20 * 60,        //  8:00pm  lights ramp down
+  out:      20 * 60 + 30    //  8:30pm  lights out
+};
+
+// In time order. Before 1pm it is still the previous night's lights-out.
+const TANK_PHASES = [
+  { kanji: "朝",   color: "#b8a9ff", start: SCHEDULE.morning,  en: "morning",    jp: "あさ" },
+  { kanji: "日",   color: "#ffd86b", start: SCHEDULE.day,      en: "daytime",    jp: "ひる" },
+  { kanji: "黄昏", color: "#ff6ac1", start: SCHEDULE.twilight, en: "twilight",   jp: "たそがれ" },
+  { kanji: "夜",   color: "#4deeea", start: SCHEDULE.out,      en: "lights out", jp: "消灯" }
+];
+const CO2_COLOR = "#7fffd0";
+
+// Each change gets a line that stays up for NOTICE_MINUTES in the clock's centre.
+const NOTICE_MINUTES = 5;
+const NOTICES = [
+  { at: SCHEDULE.co2On,    color: CO2_COLOR,             en: "The tank begins to breathe", jp: "水槽が呼吸を始める" },
+  { at: SCHEDULE.morning,  color: TANK_PHASES[0].color,  en: "The shadows retreat",        jp: "影が退いていく" },
+  { at: SCHEDULE.day,      color: TANK_PHASES[1].color,  en: "The sun rises in Elysium",   jp: "エリジウムに日が昇る" },
+  { at: SCHEDULE.co2Off,   color: CO2_COLOR,             en: "The bubbles still",          jp: "泡が静まる" },
+  { at: SCHEDULE.twilight, color: TANK_PHASES[2].color,  en: "The day grows long",         jp: "日が傾いていく" },
+  { at: SCHEDULE.out,      color: TANK_PHASES[3].color,  en: "Night falls in Elysium...",  jp: "エリジウムに夜が訪れる…" }
+];
+
+const DAY_MIN = 1440;
+const wrapDay = (m) => ((m % DAY_MIN) + DAY_MIN) % DAY_MIN;
+// Minutes from `now` until the next time the clock reads `target` (never 0).
+const minutesUntil = (now, target) => wrapDay(target - now) || DAY_MIN;
+
+function tankPhaseAt(t) {
+  let cur = TANK_PHASES[TANK_PHASES.length - 1];
+  for (const p of TANK_PHASES) if (t >= p.start) cur = p;
+  return cur;
+}
+
+function formatWait(mins, lang) {
+  const h = Math.floor(mins / 60), m = mins % 60;
+  if (lang === "jp") return (h ? h + "時間" : "") + (m || !h ? m + "分" : "");
+  return ((h ? h + "h " : "") + (m || !h ? m + "m" : "")).trim();
+}
+
+/* ---- Day clock geometry (SVG viewBox 0 0 480 480) ---- */
+const DC = { cx: 240, cy: 250, r: 170, rCo2: 144 };
+
+// The dial turns so the current minute always sits at 12 o'clock.
+function dcAngle(m, now) { return (m - now) / DAY_MIN * 2 * Math.PI - Math.PI / 2; }
+function dcPoint(r, a) { return [DC.cx + r * Math.cos(a), DC.cy + r * Math.sin(a)]; }
+function dcArc(r, m1, m2, now) {
+  const a1 = dcAngle(m1, now), a2 = dcAngle(m2, now);
+  const [x1, y1] = dcPoint(r, a1), [x2, y2] = dcPoint(r, a2);
+  const large = (a2 - a1) > Math.PI ? 1 : 0;
+  return `M${x1.toFixed(2)} ${y1.toFixed(2)}A${r} ${r} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
+}
+
+function renderDayClock(t) {
+  const set = (id, d) => { const el = document.getElementById(id); if (el) el.setAttribute("d", d); };
+  const S = SCHEDULE;
+
+  // Light schedule: lights-out runs across midnight, so it is drawn in two parts.
+  set("dc-n1", dcArc(DC.r, S.out, DAY_MIN, t));
+  set("dc-n2", dcArc(DC.r, 0, S.morning, t));
+  set("dc-m",  dcArc(DC.r, S.morning, S.day, t));
+  set("dc-d",  dcArc(DC.r, S.day, S.twilight, t));
+  set("dc-t",  dcArc(DC.r, S.twilight, S.out, t));
+  set("dc-co2", dcArc(DC.rCo2, S.co2On, S.co2Off, t));
+
+  // The last 12 hours are dimmed so the eye reads clockwise into what's next.
+  set("dc-past",     dcArc(DC.r, t - 719, t - 6, t));
+  set("dc-past-co2", dcArc(DC.rCo2, t - 719, t - 6, t));
+
+  let ticks = "";
+  for (let h = 0; h < 24; h++) {
+    const a = dcAngle(h * 60, t), len = h % 6 === 0 ? 8 : 4;
+    const [x1, y1] = dcPoint(DC.r + 13, a), [x2, y2] = dcPoint(DC.r + 13 + len, a);
+    ticks += `M${x1.toFixed(1)} ${y1.toFixed(1)}L${x2.toFixed(1)} ${y2.toFixed(1)}`;
+  }
+  set("dc-ticks", ticks);
+
+  // Hour labels ride the dial; any near the top marker hide so they don't collide.
+  [[0, "dc-h0"], [360, "dc-h6"], [720, "dc-h12"], [1080, "dc-h18"]].forEach(([m, id]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const [x, y] = dcPoint(DC.r + 36, dcAngle(m, t));
+    el.style.left = (x / 480 * 100) + "%";
+    el.style.top = (y / 480 * 100) + "%";
+    el.hidden = Math.min(minutesUntil(t, m), minutesUntil(m, t)) <= 100;
+  });
+}
+
 function updateLightCycle() {
   const k = document.getElementById("kanji");
   if (!k) return;
   const t = centralNowMinutes();
-  const SR = sunriseCentralMinutes(new Date());        // today's sunrise (Central minutes)
+  const lang = (typeof currentLang !== "undefined" && currentLang === "jp") ? "jp" : "en";
+  const phase = tankPhaseAt(t);
+  const co2On = t >= SCHEDULE.co2On && t < SCHEDULE.co2Off;
 
-  const M_START = SR - 60;          // morning: 1h before sunrise
-  const D_START = SR + 120;         // daytime: 2h after sunrise
-  const TW_START = 20 * 60;         // twilight: 8:00pm CT
-  const N_START = 21 * 60;          // night: 9:00pm CT
-  const CO2_ON = 12 * 60 + 30, CO2_OFF = 20 * 60 + 30; // CO2 12:30pm – 8:30pm CT
+  k.textContent = phase.kanji;
+  k.classList.toggle("dn-kanji-pair", phase.kanji.length > 1);
+  k.style.color = phase.color;
+  k.style.textShadow = `0 0 16px ${phase.color}`;
 
-  let kanji, color;
-  if (t >= M_START && t < D_START)       { kanji = "朝";   color = "#b8a9ff"; }
-  else if (t >= D_START && t < TW_START) { kanji = "日";   color = "#ffd86b"; }
-  else if (t >= TW_START && t < N_START) { kanji = "黄昏"; color = "#ff6ac1"; }
-  else                                   { kanji = "夜";   color = "#4deeea"; }
+  const en = document.getElementById("phase-en");
+  en.textContent = phase[lang];
+  en.style.color = phase.color;
 
-  k.textContent = kanji;
-  k.style.color = color;
-  k.style.textShadow = `0 0 16px ${color}`;
+  const orb = document.getElementById("dc-orb");
+  if (orb) orb.style.fill = orb.style.color = phase.color;
+  const co2Arc = document.getElementById("dc-co2");
+  if (co2Arc) co2Arc.classList.toggle("on", co2On);
+  renderDayClock(t);
 
-  // CO2 line only appears while CO2 is actually flowing
-  const co2On = t >= CO2_ON && t < CO2_OFF;
-  document.getElementById("co2").style.display = co2On ? "" : "none";
+  // Countdown to the next light phase
+  const next = TANK_PHASES
+    .map((p) => ({ p, wait: minutesUntil(t, p.start) }))
+    .sort((a, b) => a.wait - b.wait)[0];
+  const nextEl = document.getElementById("dc-next");
+  nextEl.textContent = "";
+  const b = document.createElement("b");
+  b.textContent = next.p.kanji;
+  b.style.color = next.p.color;
+  if (lang === "jp") {
+    nextEl.append(b, ` まで ${formatWait(next.wait, lang)}`);
+  } else {
+    const name = document.createElement("span");
+    name.textContent = next.p.en;
+    name.style.color = next.p.color;
+    nextEl.append(b, " ", name, ` in ${formatWait(next.wait, lang)}`);
+  }
+
+  // CO2: bubbles while it flows, and a countdown either way
+  document.getElementById("dc-bub").hidden = !co2On;
+  const co2Wait = co2On ? SCHEDULE.co2Off - t : minutesUntil(t, SCHEDULE.co2On);
+  document.getElementById("dc-co2-txt").textContent = lang === "jp"
+    ? `CO₂ ${co2On ? "停止" : "開始"}まで ${formatWait(co2Wait, lang)}`
+    : `CO₂ ${co2On ? "off" : "on"} in ${formatWait(co2Wait, lang)}`;
 
   // Soundscape follows the same clock: phase picks the scale, CO2 adds bubbles.
-  if (window.ElysiumSound) ElysiumSound.setPhase(kanji, { co2: co2On });
+  if (window.ElysiumSound) ElysiumSound.setPhase(phase.kanji, { co2: co2On });
 
-  // transition notice flashes for its one minute, in the new phase's color
-  const NOTICES = [
-    [M_START,  "The shadows retreat"],
-    [D_START,  "The sun rises in Elysium"],
-    [TW_START, "The day grows long"],
-    [N_START,  "Night falls in Elysium..."]
-  ];
-  const hit = NOTICES.find(pair => pair[0] === t);
+  // For NOTICE_MINUTES after each change its line replaces the countdowns.
+  const hit = NOTICES.find((n) => wrapDay(t - n.at) < NOTICE_MINUTES);
   const notice = document.getElementById("notice");
   if (hit) {
-    notice.textContent = hit[1];
-    notice.style.color = color;
-    notice.style.textShadow = `0 0 11px ${color}`;
-    notice.style.display = "";
-  } else {
-    notice.style.display = "none";
+    notice.textContent = hit[lang];
+    notice.style.color = hit.color;
+    notice.style.textShadow = `0 0 11px ${hit.color}`;
   }
+  notice.hidden = !hit;
+  nextEl.hidden = !!hit;
+  document.getElementById("dc-co2-line").hidden = !!hit;
 }
 
 /* =======================
