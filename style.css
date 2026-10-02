@@ -368,6 +368,20 @@ main {
 }
 
 .dial-panel .sensor-subtext { margin-bottom: 4px; }
+.swing-meter { margin-top: 2px; text-align: center; }
+.swing-meter:empty { display: none; }
+.swing-meter svg { display: block; width: 64%; max-width: 240px; height: auto; margin: 0 auto; overflow: visible; }
+.swing-zone { fill: none; stroke-width: 8; }
+.swing-zone-ideal { stroke: rgba(127, 255, 208, 0.12); }
+.swing-zone-watch { stroke: rgba(255, 216, 107, 0.14); }
+.swing-zone-risk  { stroke: rgba(255, 77, 109, 0.16); }
+.swing-fill   { fill: none; stroke-width: 8; stroke-linecap: round; }
+.swing-notch  { stroke: #f9eaff; stroke-opacity: 0.55; stroke-width: 1.5; }
+.swing-limit  { font-size: 9px; fill: #7d72a8; font-variant-numeric: tabular-nums; }
+.swing-value  { font-size: 24px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.swing-label  { font-size: 10px; fill: #9aa0c0; letter-spacing: 0.14em; text-transform: uppercase; }
+.swing-range  { margin-top: 2px; font-size: 0.66rem; color: #9aa0c0; font-variant-numeric: tabular-nums; }
+
 .dial-legend {
     display: flex;
     flex-wrap: wrap;
@@ -382,9 +396,7 @@ main {
 .dial-legend b { display: inline-block; width: 12px; height: 6px; border-radius: 2px; }
 .dial-legend .lg-ideal   { background: rgba(127, 255, 208, 0.35); border: 1px solid rgba(127, 255, 208, 0.6); }
 .dial-legend .lg-risk    { background: rgba(255, 77, 109, 0.3); border: 1px dashed rgba(255, 77, 109, 0.8); }
-.dial-legend .lg-swing   { border: 1px solid #9aa0c0; border-width: 1px 0; height: 7px; border-radius: 0; }
 .dial-legend .lg-co2     { height: 3px; background: radial-gradient(circle, #7fffd0 1.4px, transparent 1.6px) 0 50% / 4px 3px repeat-x; }
-.dial-legend .lg-caliper { width: 6px; height: 10px; border: 1.5px solid #9aa0c0; border-left: 0; border-radius: 0; }
 .dial-legend .lg-bubble  { width: 8px; height: 8px; border-radius: 50%; border: 1px solid #93c5fd; background: rgba(96, 165, 250, 0.25); }
 .dial-wrap { flex: 1; display: flex; align-items: center; }
 .dial {
@@ -409,11 +421,9 @@ main {
 .dial-ideal  { fill: rgba(127, 255, 208, 0.07); stroke: rgba(127, 255, 208, 0.3); stroke-width: 1; }
 .dial-risk   { fill: rgba(255, 77, 109, 0.11); }
 .dial-risk-edge { fill: none; stroke: rgba(255, 77, 109, 0.55); stroke-width: 1; stroke-dasharray: 4 3; }
-.dial-swing-edge { fill: none; stroke-opacity: 0.6; stroke-width: 1.2; }
 .dial-needle { stroke: #f9eaff; stroke-width: 2; stroke-linecap: round; opacity: 0.8; }
 .dial-notch  { fill: #f9eaff; }
 .dial-cursor { stroke: rgba(249, 234, 255, 0.5); stroke-width: 1; stroke-dasharray: 3 4; }
-.dial-caliper { font-size: 12px; font-variant-numeric: tabular-nums; }
 
 .dial-co2-track { fill: none; stroke: rgba(127, 255, 208, 0.07); stroke-width: 6; }
 .dial-co2 {

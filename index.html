@@ -195,7 +195,8 @@
         </div>
         <div id="temp-last-updated" class="sensor-subtext">Last updated —</div>
         <div class="dial-wrap"><div class="dial" id="temp-dial"></div></div>
-        <div class="dial-legend"><span><b class="lg-ideal"></b><em data-en="ideal" data-jp="適正">ideal</em></span><span><b class="lg-risk"></b><em data-en="risk" data-jp="危険">risk</em></span><span><b class="lg-swing"></b><em data-en="24h swing" data-jp="24時間の変動">24h swing</em></span></div>
+        <div class="swing-meter" id="temp-swing" role="img"></div>
+        <div class="dial-legend"><span><b class="lg-ideal"></b><em data-en="ideal" data-jp="適正">ideal</em></span><span><b class="lg-risk"></b><em data-en="risk" data-jp="危険">risk</em></span></div>
       </section>
 
       <section class="sensor-panel dial-panel">
@@ -205,7 +206,8 @@
         </div>
         <div id="ph-last-updated" class="sensor-subtext">Last updated —</div>
         <div class="dial-wrap"><div class="dial" id="ph-dial"></div></div>
-        <div class="dial-legend"><span><b class="lg-ideal"></b><em data-en="ideal" data-jp="適正">ideal</em></span><span><b class="lg-risk"></b><em data-en="risk" data-jp="危険">risk</em></span><span><b class="lg-co2"></b><em data-en="CO₂ on" data-jp="CO₂ 注入">CO₂ on</em></span><span><b class="lg-caliper"></b><em data-en="24h swing" data-jp="24時間の変動">24h swing</em></span></div>
+        <div class="swing-meter" id="ph-swing" role="img"></div>
+        <div class="dial-legend"><span><b class="lg-ideal"></b><em data-en="ideal" data-jp="適正">ideal</em></span><span><b class="lg-risk"></b><em data-en="risk" data-jp="危険">risk</em></span><span><b class="lg-co2"></b><em data-en="CO₂ on" data-jp="CO₂ 注入">CO₂ on</em></span></div>
       </section>
 
       <section class="sensor-panel dial-panel">
@@ -215,6 +217,7 @@
         </div>
         <div id="do-last-updated" class="sensor-subtext">Last updated —</div>
         <div class="dial-wrap"><div class="dial" id="do-dial"></div></div>
+        <div class="swing-meter" id="do-swing" role="img"></div>
         <div class="dial-legend"><span><b class="lg-ideal"></b><em data-en="ideal" data-jp="適正">ideal</em></span><span><b class="lg-risk"></b><em data-en="risk" data-jp="危険">risk</em></span><span><b class="lg-bubble"></b><em data-en="hourly" data-jp="毎時">hourly</em></span></div>
       </section>
     </div>
@@ -399,19 +402,20 @@ const TANK_SPECIES = "neocaridina";
 
 // ideal: where they thrive. limit: past this it's a risk. swing: 24h high
 // minus low, with watch / risk thresholds. DO has no upper limit worth
-// flagging, so its top values sit out of reach.
+// flagging, so its top values sit out of reach; its swing is in percentage
+// points, and a big one means a deep overnight low.
 const SPECIES_PROFILES = {
   neocaridina: {
     en: "Neocaridina", jp: "ネオカリディナ",
     temp: { ideal: [68, 76],   limit: [64, 80],   swing: { watch: 3,   risk: 5 } },
     ph:   { ideal: [6.8, 7.8], limit: [6.2, 8.2], swing: { watch: 0.8, risk: 1.2 } },
-    do:   { ideal: [60, 999],  limit: [45, 999] }
+    do:   { ideal: [60, 999],  limit: [45, 999], swing: { watch: 40,  risk: 60 } }
   },
   caridina: {
     en: "Caridina", jp: "カリディナ",
     temp: { ideal: [68, 74],   limit: [62, 77],   swing: { watch: 2,   risk: 4 } },
     ph:   { ideal: [5.8, 6.6], limit: [5.5, 7.0], swing: { watch: 0.6, risk: 1.0 } },
-    do:   { ideal: [70, 999],  limit: [55, 999] }
+    do:   { ideal: [70, 999],  limit: [55, 999], swing: { watch: 30,  risk: 50 } }
   }
 };
 const PROFILE = SPECIES_PROFILES[TANK_SPECIES];
@@ -511,25 +515,14 @@ const lightsOn = (m) => m >= SCHEDULE.morning && m < SCHEDULE.out;
 const DIAL_SENSORS = {
   temp: {
     bands: () => PROFILE.temp, dp: 1, minSpan: 3, grid: (g) => g + "°", orb: (v) => heatColor(v),
-    // Temperature swing: the ring between the 24h high and low is shaded.
-    under: (c) => {
-      const col = DIAL_STATUS[swingStatus(c.ex.swing, PROFILE.temp.swing)].color;
-      const rH = c.scale(c.ex.hi[1]), rL = c.scale(c.ex.lo[1]);
-      return `<path fill-rule="evenodd" d="${dialRing(rH, rL)}" fill="${col}" fill-opacity="0.13"/>` +
-        `<circle cx="${DIAL.cx}" cy="${DIAL.cy}" r="${rH}" class="dial-swing-edge" stroke="${col}"/>` +
-        `<circle cx="${DIAL.cx}" cy="${DIAL.cy}" r="${rL}" class="dial-swing-edge" stroke="${col}"/>`;
-    },
     trace: (d, scale, ang) => d.slice(1).map(([t, v], i) => {
       if (t - d[i][0] > 15 * 60000) return "";
       const [x1, y1] = dialPt(scale(d[i][1]), ang(d[i][0])), [x2, y2] = dialPt(scale(v), ang(t));
       return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${heatColor(v)}" stroke-width="3.5" stroke-linecap="round"/>`;
     }).join(""),
-    center: (v, c, lang) => {
-      const col = c.ex ? DIAL_STATUS[swingStatus(c.ex.swing, PROFILE.temp.swing)].color : "";
-      return `<div class="dial-val" style="color:${heatColor(v)}">${v.toFixed(1)}<small>°F</small></div>` +
-        `<div class="dial-sub">${((v - 32) * 5 / 9).toFixed(1)} °C</div>` +
-        (c.ex ? `<div class="dial-hint" style="color:${col}">↕ ${c.ex.swing.toFixed(1)}° ${lang === "jp" ? "変動・24時間" : "swing · 24h"}</div>` : "");
-    }
+    swingFmt: (x) => x.toFixed(1) + "°", valFmt: (x) => x.toFixed(1) + "°",
+    center: (v) => `<div class="dial-val" style="color:${heatColor(v)}">${v.toFixed(1)}<small>°F</small></div>` +
+      `<div class="dial-sub">${((v - 32) * 5 / 9).toFixed(1)} °C</div>`
   },
 
   ph: {
@@ -538,35 +531,18 @@ const DIAL_SENSORS = {
     under: (c) => `<circle cx="${DIAL.cx}" cy="${DIAL.cy}" r="80" class="dial-co2-track"/>` +
       `<path class="dial-co2" d="${c.todArc(80, SCHEDULE.co2On, SCHEDULE.co2Off)}"/>`,
     trace: (d, scale, ang) => `<path class="dial-line-ph" d="${dialLine(d, scale, ang)}"/>`,
-    // pH swing: a caliper on the NOW line spans the 24h high and low, and rings
-    // mark when each happened.
-    over: (c) => {
-      const col = DIAL_STATUS[swingStatus(c.ex.swing, PROFILE.ph.swing)].color;
-      const rH = c.scale(c.ex.hi[1]), rL = c.scale(c.ex.lo[1]), x = DIAL.cx + 16, mid = DIAL.cy - (rH + rL) / 2;
-      const mark = (p) => { const [px, py] = dialPt(c.scale(p[1]), c.ang(p[0]));
-        return `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="6" fill="none" stroke="${col}" stroke-width="1.6"/>`; };
-      return mark(c.ex.hi) + mark(c.ex.lo) +
-        `<path d="M${DIAL.cx + 4},${DIAL.cy - rH}H${x}V${DIAL.cy - rL}H${DIAL.cx + 4}" fill="none" stroke="${col}" stroke-width="1.6"/>` +
-        `<rect x="${x + 5}" y="${mid - 10}" width="46" height="20" rx="10" fill="#0b0a16" stroke="${col}" stroke-opacity="0.6"/>` +
-        `<text x="${x + 28}" y="${mid + 4}" text-anchor="middle" class="dial-caliper" fill="${col}">${c.ex.swing.toFixed(2)}</text>`;
-    },
+    swingFmt: (x) => x.toFixed(2), valFmt: (x) => x.toFixed(2),
     center: (v, c, lang) => {
       const word = lang === "jp"
         ? (v < 6.5 ? "酸性" : v < 7 ? "弱酸性" : v < 7.5 ? "中性" : "アルカリ性")
         : (v < 6.5 ? "acidic" : v < 7 ? "slightly acidic" : v < 7.5 ? "neutral" : "alkaline");
-      let s = `<div class="dial-val" style="color:#ffbdf2">${v.toFixed(2)}</div><div class="dial-sub">${word}</div>`;
-      if (c.ex && !c.scrubbing) {
-        const hi = c.ex.hi, lo = c.ex.lo;
-        s += lang === "jp"
-          ? `<div class="dial-hint">最高 ${hi[1].toFixed(2)}（${dialClock(hi[0])}）<br>最低 ${lo[1].toFixed(2)}（${dialClock(lo[0])}）</div>`
-          : `<div class="dial-hint">high ${hi[1].toFixed(2)} at ${dialClock(hi[0])}<br>low ${lo[1].toFixed(2)} at ${dialClock(lo[0])}</div>`;
-      }
-      return s;
+      return `<div class="dial-val" style="color:#ffbdf2">${v.toFixed(2)}</div><div class="dial-sub">${word}</div>`;
     }
   },
 
   do: {
     bands: () => PROFILE.do, dp: 1, minSpan: 50, grid: (g) => g + "%", orb: () => "#60a5fa",
+    swingFmt: (x) => Math.round(x) + "%", valFmt: (x) => x.toFixed(1) + "%",
     // A water line in the hub at the current saturation (moved by dialsSetLive).
     under: () => `<defs><clipPath id="do-hub"><circle cx="${DIAL.cx}" cy="${DIAL.cy}" r="72"/></clipPath></defs>` +
       `<circle cx="${DIAL.cx}" cy="${DIAL.cy}" r="72" class="dial-hub"/>` +
@@ -665,8 +641,38 @@ function renderDial(key) {
   el.innerHTML = s;
 
   dialViews[key] = { el, cfg, ctx, data, scrub: null };
+  renderSwingMeter(key, ex);
   attachScrub(key);
   dialsSetLive();
+}
+
+// The 24h swing (high minus low) as a small arc gauge under each dial, with
+// its track tinted by the profile's watch and risk thresholds.
+function renderSwingMeter(key, ex) {
+  const el = document.getElementById(`${key}-swing`);
+  if (!el) return;
+  const cfg = DIAL_SENSORS[key], sw = cfg.bands().swing, lang = dialLang();
+  if (!ex || !sw) { el.innerHTML = ""; return; }
+  const st = swingStatus(ex.swing, sw), col = DIAL_STATUS[st].color;
+  const max = sw.risk * 1.5, A = Math.PI / 3, cx = 120, cy = 112, r = 92;
+  const at = (v) => -A + Math.max(0, Math.min(1, v / max)) * 2 * A;
+  const pt = (rad, a) => `${(cx + rad * Math.sin(a)).toFixed(1)},${(cy - rad * Math.cos(a)).toFixed(1)}`;
+  const arc = (a0, a1) => `M${pt(r, a0)}A${r},${r} 0 0 1 ${pt(r, a1)}`;
+  const notch = (v) => `<line x1="${pt(r - 8, at(v)).replace(",", '" y1="')}" x2="${pt(r + 8, at(v)).replace(",", '" y2="')}" class="swing-notch"/>` +
+    `<text class="swing-limit" x="${pt(r + 17, at(v)).split(",")[0]}" y="${(+pt(r + 17, at(v)).split(",")[1] + 3).toFixed(1)}" text-anchor="middle">${cfg.swingFmt(v)}</text>`;
+  const t = (p) => lang === "jp" ? `${cfg.valFmt(p[1])}（${dialClock(p[0])}）` : `${cfg.valFmt(p[1])} at ${dialClock(p[0])}`;
+  el.innerHTML =
+    `<svg viewBox="0 0 240 92" aria-hidden="true" focusable="false">` +
+      `<path class="swing-zone swing-zone-ideal" d="${arc(-A, at(sw.watch))}"/>` +
+      `<path class="swing-zone swing-zone-watch" d="${arc(at(sw.watch), at(sw.risk))}"/>` +
+      `<path class="swing-zone swing-zone-risk" d="${arc(at(sw.risk), A)}"/>` +
+      `<path class="swing-fill" d="${arc(-A, Math.max(-A + 0.001, at(ex.swing)))}" stroke="${col}" style="filter:drop-shadow(0 0 5px ${col})"/>` +
+      notch(sw.watch) + notch(sw.risk) +
+      `<text class="swing-value" x="${cx}" y="66" text-anchor="middle" fill="${col}">${cfg.swingFmt(ex.swing)}</text>` +
+      `<text class="swing-label" x="${cx}" y="84" text-anchor="middle">${lang === "jp" ? "24時間の変動" : "24h swing"}</text>` +
+    `</svg>` +
+    `<div class="swing-range">${lang === "jp" ? "最低" : "low"} ${t(ex.lo)} · ${lang === "jp" ? "最高" : "high"} ${t(ex.hi)}</div>`;
+  el.setAttribute("aria-label", `24h swing ${cfg.swingFmt(ex.swing)}, ${DIAL_STATUS[st].en}`);
 }
 
 function renderDials() {
