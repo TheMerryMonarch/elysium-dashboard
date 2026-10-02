@@ -6,7 +6,6 @@
   <title>Project Elysium</title>
 
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
   <script src="soundscape.js" defer></script>
 </head>
@@ -187,37 +186,36 @@
     </div>
 
     <div class="compact-right">
-      <!-- Temperature -->
-      <section class="sensor-panel">
+      <!-- Sensor dials: 24h of readings around a dial that turns like the day
+           clock, so the same hour sits at the same angle on all four. -->
+      <section class="sensor-panel dial-panel">
         <div class="sensor-head">
           <span class="sensor-name" id="temp-label">Temperature</span>
-          <span id="temp-value" class="sensor-value">--</span>
+          <span class="dial-status" id="temp-status" hidden></span>
         </div>
-        <div class="sensor-unit" id="temp-unit"></div>
         <div id="temp-last-updated" class="sensor-subtext">Last updated —</div>
-        <div class="chart-placeholder"><canvas id="temp-chart"></canvas></div>
+        <div class="dial-wrap"><div class="dial" id="temp-dial"></div></div>
+        <div class="dial-legend"><span><b class="lg-ideal"></b><em data-en="ideal" data-jp="適正">ideal</em></span><span><b class="lg-risk"></b><em data-en="risk" data-jp="危険">risk</em></span><span><b class="lg-swing"></b><em data-en="24h swing" data-jp="24時間の変動">24h swing</em></span></div>
       </section>
 
-      <!-- pH -->
-      <section class="sensor-panel">
+      <section class="sensor-panel dial-panel">
         <div class="sensor-head">
           <span class="sensor-name" id="ph-label">pH</span>
-          <span id="ph-value" class="sensor-value">--</span>
+          <span class="dial-status" id="ph-status" hidden></span>
         </div>
-        <div class="sensor-unit" id="ph-unit"></div>
         <div id="ph-last-updated" class="sensor-subtext">Last updated —</div>
-        <div class="chart-placeholder"><canvas id="ph-chart"></canvas></div>
+        <div class="dial-wrap"><div class="dial" id="ph-dial"></div></div>
+        <div class="dial-legend"><span><b class="lg-ideal"></b><em data-en="ideal" data-jp="適正">ideal</em></span><span><b class="lg-risk"></b><em data-en="risk" data-jp="危険">risk</em></span><span><b class="lg-co2"></b><em data-en="CO₂ on" data-jp="CO₂ 注入">CO₂ on</em></span><span><b class="lg-caliper"></b><em data-en="24h swing" data-jp="24時間の変動">24h swing</em></span></div>
       </section>
 
-      <!-- Dissolved oxygen -->
-      <section class="sensor-panel">
+      <section class="sensor-panel dial-panel">
         <div class="sensor-head">
           <span class="sensor-name" id="do-label">Dissolved Oxygen</span>
-          <span id="do-value" class="sensor-value">--</span>
+          <span class="dial-status" id="do-status" hidden></span>
         </div>
-        <div class="sensor-unit" id="do-unit"></div>
         <div id="do-last-updated" class="sensor-subtext">Last updated —</div>
-        <div class="chart-placeholder"><canvas id="do-chart"></canvas></div>
+        <div class="dial-wrap"><div class="dial" id="do-dial"></div></div>
+        <div class="dial-legend"><span><b class="lg-ideal"></b><em data-en="ideal" data-jp="適正">ideal</em></span><span><b class="lg-risk"></b><em data-en="risk" data-jp="危険">risk</em></span><span><b class="lg-bubble"></b><em data-en="hourly" data-jp="毎時">hourly</em></span></div>
       </section>
     </div>
   </div>
@@ -260,49 +258,6 @@ function secondsAgo(iso) {
   return Math.floor((Date.now() - t) / 1000);
 }
 
-// Stable hour key in CST: "YYYY-MM-DD HH"
-function hourKeyCST(iso) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Chicago",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    hour12: false
-  }).formatToParts(new Date(iso));
-  const get = (t) => parts.find(p => p.type === t)?.value;
-  return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}`;
-}
-
-// Build the last 24 hour keys + labels (in CST), ending at the current hour
-function last24HoursCST() {
-  const keys = [];
-  const labels = [];
-
-  // Use local "now" but format keys/labels in CST
-  const now = new Date();
-  // Build 24 points back from now (hourly)
-  for (let i = 23; i >= 0; i--) {
-    const d = new Date(now.getTime() - i * 60 * 60 * 1000);
-
-    const parts = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "America/Chicago",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      hour12: false
-    }).formatToParts(d);
-
-    const get = (t) => parts.find(p => p.type === t)?.value;
-    const key = `${get("year")}-${get("month")}-${get("day")} ${get("hour")}`;
-    keys.push(key);
-    labels.push(`${get("hour")}:00`);
-  }
-
-  return { keys, labels };
-}
-
 /* =======================
    LANGUAGE TOGGLE
 ======================= */
@@ -317,8 +272,6 @@ const translations = {
     doLabel: "Dissolved Oxygen",
     biota: "Interesting Flora & Fauna",
     specs: "Specs",
-    tempUnit: "°F",
-    phUnit: "",
     sleepTitle: "Shh — the shrimp are sleeping",
     sleepSub: "(and so are their owners)",
     sleepWake: "Wakes in",
@@ -333,8 +286,6 @@ const translations = {
     doLabel: "溶存酸素",
     biota: "興味深い動植物",
     specs: "機材",
-    tempUnit: "°F",
-    phUnit: "",
     sleepTitle: "しーっ — エビたちは眠っています",
     sleepSub: "（飼い主も眠っています）",
     sleepWake: "起床まで",
@@ -367,7 +318,6 @@ function applyLanguage() {
   document.getElementById("temp-label").textContent = t.temp;
 
   document.getElementById("ph-label").textContent = t.ph;
-  document.getElementById("ph-unit").textContent = t.phUnit;
 
   const dl = document.getElementById("do-label");
   if (dl) dl.textContent = t.doLabel;
@@ -380,6 +330,8 @@ function applyLanguage() {
   });
   // The day clock's phase caption, countdowns and notices are built in code.
   if (typeof updateLightCycle === "function") updateLightCycle();
+  // Dial labels (hours, status, captions) are built in code too.
+  if (typeof renderDials === "function") renderDials();
 
   if (window.ElysiumSound) ElysiumSound.setLang(currentLang);
 }
@@ -405,85 +357,22 @@ async function fetchLatest() {
 
 async function updateDashboard() {
   const data = await fetchLatest();
+  const num = (v) => (v == null || v === "" || !Number.isFinite(Number(v))) ? null : Number(v);
 
-  // Temperature (support both keys). The unit rides with the number now, so
-  // the reading is legible on its own; the sub-line carries Celsius, which is
-  // the more useful second unit on a page that ships a Japanese translation.
-  const temp = data.temperature_f ?? data.temp_f;
-  const tempEl = document.getElementById("temp-value");
-  const tempOk = temp != null && temp !== "";
-  if (tempEl) {
-    tempEl.innerHTML = tempOk
-      ? `${Number(temp).toFixed(2)}<span class="unit">°F</span>`
-      : "--";
-  }
-  const tempUnitEl = document.getElementById("temp-unit");
-  if (tempUnitEl) {
-    tempUnitEl.textContent = tempOk
-      ? `${(((Number(temp) - 32) * 5) / 9).toFixed(1)} °C`
-      : "";
-  }
+  const temp = num(data.temperature_f ?? data.temp_f);
+  const phVal = num(data.ph ?? data.pH ?? data.ph_value);
+  // 0.0 is the old broken push mapping rather than a reading.
+  const doPct = num(data.do_percent) || null;
 
-  // pH
-  const phVal = data.ph ?? data.pH ?? data.ph_value;
-  const phEl = document.getElementById("ph-value");
-  if (phEl) {
-    phEl.textContent = (phVal != null && phVal !== "") ? Number(phVal).toFixed(2) : "--";
-  }
-  // Dissolved oxygen. % saturation leads because it is the intuitive figure --
-  // "how full of oxygen is this water" -- while mg/L means little to a visitor.
-  // mg/L stays alongside: it is the number the probe actually reports and the
-  // one every alert bound is written in.
-  const doPct = data.do_percent;
-  const doVal = data.do_mg_per_l ?? data.do_mg_l;
-  const doEl = document.getElementById("do-value");
-  const pctOk = doPct != null && doPct !== "";
-  const mgOk = doVal != null && doVal !== "";
-  if (doEl) {
-    if (pctOk) {
-      doEl.innerHTML = `${Number(doPct).toFixed(1)}<span class="unit">%</span>`;
-    } else if (mgOk) {
-      doEl.innerHTML = `${Number(doVal).toFixed(2)}<span class="unit">mg/L</span>`;
-    } else {
-      doEl.textContent = "--";
-    }
-  }
-
-  const doUnitEl = document.getElementById("do-unit");
-  if (doUnitEl) {
-    if (pctOk && mgOk) {
-      doUnitEl.textContent = `saturation · ${Number(doVal).toFixed(2)} mg/L`;
-    } else if (pctOk) {
-      doUnitEl.textContent = "saturation";
-    } else {
-      doUnitEl.textContent = "";
-    }
-  }
+  dialLatest = { temp, ph: phVal, do: doPct, timestamp: data.timestamp };
+  dialsSetLive();
 
   // Feed the soundscape: pH sets its key, DO its tempo, temperature its tone.
   if (window.ElysiumSound) ElysiumSound.setTelemetry({ ph: phVal, doPct, tempF: temp });
-
-  // Last updated lines (one timestamp powers all three)
-  if (data.timestamp) {
-    const s = secondsAgo(data.timestamp);
-    const line = (s == null)
-      ? `Last updated — (${formatCST(data.timestamp)})`
-      : `Last updated ${s}s ago (${formatCST(data.timestamp)})`;
-
-    const tlu = document.getElementById("temp-last-updated");
-    const plu = document.getElementById("ph-last-updated");
-    const dlu = document.getElementById("do-last-updated");
-    if (tlu) tlu.textContent = line;
-    if (plu) plu.textContent = line;
-    if (dlu) dlu.textContent = line;
-  }
-
-  // Debug (optional)
-  // console.log("LATEST:", data);
 }
 
 /* =======================
-   HISTORY (24h hourly avg)
+   HISTORY (last 24h, raw)
 ======================= */
 async function fetchHistory() {
   try {
@@ -496,133 +385,383 @@ async function fetchHistory() {
   }
 }
 
-function avgBucketsFromHistory(history, valueGetter) {
-  const now = Date.now();
-  const cutoff = now - 24 * 60 * 60 * 1000;
-  const buckets = new Map(); // key -> {sum,count}
-
-  for (const r of history) {
-    const ts = new Date(r.timestamp).getTime();
-    if (!Number.isFinite(ts) || ts < cutoff || ts > now) continue;
-
-    const v = valueGetter(r);
-    const n = Number(v);
-    if (!Number.isFinite(n)) continue;
-
-    const key = hourKeyCST(r.timestamp);
-    const cur = buckets.get(key) || { sum: 0, count: 0 };
-    cur.sum += n;
-    cur.count += 1;
-    buckets.set(key, cur);
-  }
-  return buckets;
-}
-
-function seriesFromBuckets(hourKeys, buckets) {
-  return hourKeys.map(k => {
-    const b = buckets.get(k);
-    if (!b || !b.count) return null;
-    return b.sum / b.count;
-  });
-}
-
 /* =======================
-   CHARTS
+   SENSOR DIALS
+   Each sensor's last 24h wraps around a dial that turns like the day clock:
+   NOW at the top, the past running back anticlockwise, the light schedule
+   on the rim. Further out = higher reading. Bands come from the species
+   profile below.
 ======================= */
-let tempChart, phChart, doChart;
 
-function makeLineChart(ctx, labels, data, borderColor, backgroundColor, pointRadius = 0, tickSuffix = "", decimals = null) {
-  return new Chart(ctx, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [{
-        data,
-        borderColor,
-        backgroundColor,
-        fill: false,
-        tension: 0.3,
-        pointRadius,
-        spanGaps: false,
-        borderWidth: 2.5
-      }]
+// Which shrimp the bands are judged against. Deliberately not exposed on the
+// page -- flip this to "caridina" when the Caridina go in.
+const TANK_SPECIES = "neocaridina";
+
+// ideal: where they thrive. limit: past this it's a risk. swing: 24h high
+// minus low, with watch / risk thresholds. DO has no upper limit worth
+// flagging, so its top values sit out of reach.
+const SPECIES_PROFILES = {
+  neocaridina: {
+    en: "Neocaridina", jp: "ネオカリディナ",
+    temp: { ideal: [68, 76],   limit: [64, 80],   swing: { watch: 3,   risk: 5 } },
+    ph:   { ideal: [6.8, 7.8], limit: [6.2, 8.2], swing: { watch: 0.8, risk: 1.2 } },
+    do:   { ideal: [60, 999],  limit: [45, 999] }
+  },
+  caridina: {
+    en: "Caridina", jp: "カリディナ",
+    temp: { ideal: [68, 74],   limit: [62, 77],   swing: { watch: 2,   risk: 4 } },
+    ph:   { ideal: [5.8, 6.6], limit: [5.5, 7.0], swing: { watch: 0.6, risk: 1.0 } },
+    do:   { ideal: [70, 999],  limit: [55, 999] }
+  }
+};
+const PROFILE = SPECIES_PROFILES[TANK_SPECIES];
+
+const DIAL_STATUS = {
+  ideal: { color: "#7fffd0", en: "ideal", jp: "良好" },
+  watch: { color: "#ffd86b", en: "watch", jp: "注意" },
+  risk:  { color: "#ff4d6d", en: "risk",  jp: "危険" }
+};
+// Judged on the number as displayed, so "6.20" never reads as below a 6.2 limit.
+const levelStatus = (v, b, dp = 2) => {
+  v = Number(v.toFixed(dp));
+  return v < b.limit[0] || v > b.limit[1] ? "risk" : v < b.ideal[0] || v > b.ideal[1] ? "watch" : "ideal";
+};
+const swingStatus = (s, sw) => s >= sw.risk ? "risk" : s >= sw.watch ? "watch" : "ideal";
+
+// Geometry, SVG viewBox 0 0 400 400. Readings plot between r0 and r1; the
+// light schedule rides the rim at rl.
+const DIAL = { cx: 200, cy: 205, r0: 92, r1: 150, rl: 172 };
+const DAY_MS = 864e5;
+
+let dialSeries = null;   // { temp, ph, do }: [[ms, value], ...] in 5-min buckets
+let dialLatest = {};     // newest /latest reading
+const dialViews = {};    // per-sensor render state, for live updates + scrubbing
+
+// Average the raw ~20s history into 5-minute buckets over the last 24h.
+function bucketHistory(history, get, minutes = 5) {
+  const now = Date.now(), size = minutes * 60000, buckets = new Map();
+  for (const r of history) {
+    const ts = Date.parse(r.timestamp), raw = get(r);
+    if (raw == null || raw === "") continue;
+    const n = Number(raw);
+    if (!Number.isFinite(ts) || ts < now - DAY_MS || ts > now || !Number.isFinite(n)) continue;
+    const k = Math.floor(ts / size), b = buckets.get(k) || { sum: 0, count: 0 };
+    b.sum += n; b.count += 1;
+    buckets.set(k, b);
+  }
+  return [...buckets.entries()].sort((a, b) => a[0] - b[0])
+    .map(([k, b]) => [k * size + size / 2, b.sum / b.count]);
+}
+
+async function updateDials() {
+  const history = await fetchHistory();
+  if (!Array.isArray(history) || history.length === 0) {
+    console.warn("No history returned; dials will be empty.");
+  } else {
+    dialSeries = {
+      temp: bucketHistory(history, r => r.temperature_f ?? r.temp_f ?? r.value),
+      ph:   bucketHistory(history, r => r.ph ?? r.pH ?? r.ph_value),
+      do:   bucketHistory(history, r => r.do_percent || null)
+    };
+  }
+  renderDials();
+}
+
+/* ---- helpers ---- */
+const dialLang = () => (typeof currentLang !== "undefined" && currentLang === "jp") ? "jp" : "en";
+const dialClock = (ms) => new Date(ms).toLocaleTimeString(dialLang() === "jp" ? "ja-JP" : "en-US",
+  { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" });
+const dialPt = (r, a) => [DIAL.cx + r * Math.sin(a), DIAL.cy - r * Math.cos(a)];
+const dialP = ([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`;
+function dialArcA(r, a0, a1) {
+  const large = (a1 - a0) > Math.PI ? 1 : 0;
+  return `M${dialP(dialPt(r, a0))}A${r},${r} 0 ${large} 1 ${dialP(dialPt(r, a1))}`;
+}
+// A filled annulus between two radii.
+function dialRing(rOut, rIn) {
+  const c = (r, sweep) => `M${DIAL.cx},${DIAL.cy - r}a${r},${r} 0 1 ${sweep} 0,${2 * r}a${r},${r} 0 1 ${sweep} 0,${-2 * r}Z`;
+  return c(rOut, 1) + c(rIn, 0);
+}
+function dialExtent(d) {
+  let lo = d[0], hi = d[0];
+  for (const p of d) { if (p[1] < lo[1]) lo = p; if (p[1] > hi[1]) hi = p; }
+  return { lo, hi, swing: hi[1] - lo[1] };
+}
+function niceTicks(lo, hi) {
+  const span = hi - lo, steps = [0.1, 0.2, 0.25, 0.5, 1, 2, 2.5, 5, 10, 20, 25];
+  const step = steps.find(s => span / s <= 4) || 25, out = [];
+  for (let v = Math.ceil(lo / step) * step; v <= hi - step * 0.3; v += step) {
+    if (v > lo + step * 0.3) out.push(+v.toFixed(2));
+  }
+  return out;
+}
+// Polyline through the readings, broken wherever the feed had a gap.
+function dialLine(data, scale, ang) {
+  return data.map(([t, v], i) =>
+    (i && t - data[i - 1][0] <= 15 * 60000 ? "L" : "M") + dialP(dialPt(scale(v), ang(t)))).join("");
+}
+const heatColor = (v) => {
+  const k = Math.max(0, Math.min(1, (v - 69.5) / 3)), stops = [[77, 238, 234], [255, 216, 107], [255, 106, 193]];
+  const [a, b, kk] = k < 0.5 ? [stops[0], stops[1], k * 2] : [stops[1], stops[2], (k - 0.5) * 2];
+  return `rgb(${a.map((c, i) => Math.round(c + (b[i] - c) * kk)).join(",")})`;
+};
+const lightsOn = (m) => m >= SCHEDULE.morning && m < SCHEDULE.out;
+
+/* ---- per-sensor pieces ---- */
+const DIAL_SENSORS = {
+  temp: {
+    bands: () => PROFILE.temp, dp: 1, minSpan: 3, grid: (g) => g + "°", orb: (v) => heatColor(v),
+    // Temperature swing: the ring between the 24h high and low is shaded.
+    under: (c) => {
+      const col = DIAL_STATUS[swingStatus(c.ex.swing, PROFILE.temp.swing)].color;
+      const rH = c.scale(c.ex.hi[1]), rL = c.scale(c.ex.lo[1]);
+      return `<path fill-rule="evenodd" d="${dialRing(rH, rL)}" fill="${col}" fill-opacity="0.13"/>` +
+        `<circle cx="${DIAL.cx}" cy="${DIAL.cy}" r="${rH}" class="dial-swing-edge" stroke="${col}"/>` +
+        `<circle cx="${DIAL.cx}" cy="${DIAL.cy}" r="${rL}" class="dial-swing-edge" stroke="${col}"/>`;
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { ticks: { maxTicksLimit: 12, autoSkip: true } },
-        // tickSuffix labels the axis in place, so the unit travels with the
-        // numbers instead of living only in the card header. The value needs
-        // formatting either way: a raw `${v}` exposes the float noise in the
-        // scale's step arithmetic (6.550000000000001). decimals pins a fixed
-        // precision; without it, getLabelForValue applies Chart.js's own.
-        y: { ticks: { callback: function (v) {
-          const n = decimals === null ? this.getLabelForValue(v) : Number(v).toFixed(decimals);
-          return `${n}${tickSuffix}`;
-        } } }
+    trace: (d, scale, ang) => d.slice(1).map(([t, v], i) => {
+      if (t - d[i][0] > 15 * 60000) return "";
+      const [x1, y1] = dialPt(scale(d[i][1]), ang(d[i][0])), [x2, y2] = dialPt(scale(v), ang(t));
+      return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${heatColor(v)}" stroke-width="3.5" stroke-linecap="round"/>`;
+    }).join(""),
+    center: (v, c, lang) => {
+      const col = c.ex ? DIAL_STATUS[swingStatus(c.ex.swing, PROFILE.temp.swing)].color : "";
+      return `<div class="dial-val" style="color:${heatColor(v)}">${v.toFixed(1)}<small>°F</small></div>` +
+        `<div class="dial-sub">${((v - 32) * 5 / 9).toFixed(1)} °C</div>` +
+        (c.ex ? `<div class="dial-hint" style="color:${col}">↕ ${c.ex.swing.toFixed(1)}° ${lang === "jp" ? "変動・24時間" : "swing · 24h"}</div>` : "");
+    }
+  },
+
+  ph: {
+    bands: () => PROFILE.ph, dp: 2, minSpan: 1.0, grid: (g) => g.toFixed(1), orb: () => "#ff6ac1",
+    // The CO2 window sits just inside the readings, so the dip lines up under it.
+    under: (c) => `<circle cx="${DIAL.cx}" cy="${DIAL.cy}" r="80" class="dial-co2-track"/>` +
+      `<path class="dial-co2" d="${c.todArc(80, SCHEDULE.co2On, SCHEDULE.co2Off)}"/>`,
+    trace: (d, scale, ang) => `<path class="dial-line-ph" d="${dialLine(d, scale, ang)}"/>`,
+    // pH swing: a caliper on the NOW line spans the 24h high and low, and rings
+    // mark when each happened.
+    over: (c) => {
+      const col = DIAL_STATUS[swingStatus(c.ex.swing, PROFILE.ph.swing)].color;
+      const rH = c.scale(c.ex.hi[1]), rL = c.scale(c.ex.lo[1]), x = DIAL.cx + 16, mid = DIAL.cy - (rH + rL) / 2;
+      const mark = (p) => { const [px, py] = dialPt(c.scale(p[1]), c.ang(p[0]));
+        return `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="6" fill="none" stroke="${col}" stroke-width="1.6"/>`; };
+      return mark(c.ex.hi) + mark(c.ex.lo) +
+        `<path d="M${DIAL.cx + 4},${DIAL.cy - rH}H${x}V${DIAL.cy - rL}H${DIAL.cx + 4}" fill="none" stroke="${col}" stroke-width="1.6"/>` +
+        `<rect x="${x + 5}" y="${mid - 10}" width="46" height="20" rx="10" fill="#0b0a16" stroke="${col}" stroke-opacity="0.6"/>` +
+        `<text x="${x + 28}" y="${mid + 4}" text-anchor="middle" class="dial-caliper" fill="${col}">${c.ex.swing.toFixed(2)}</text>`;
+    },
+    center: (v, c, lang) => {
+      const word = lang === "jp"
+        ? (v < 6.5 ? "酸性" : v < 7 ? "弱酸性" : v < 7.5 ? "中性" : "アルカリ性")
+        : (v < 6.5 ? "acidic" : v < 7 ? "slightly acidic" : v < 7.5 ? "neutral" : "alkaline");
+      let s = `<div class="dial-val" style="color:#ffbdf2">${v.toFixed(2)}</div><div class="dial-sub">${word}</div>`;
+      if (c.ex && !c.scrubbing) {
+        const hi = c.ex.hi, lo = c.ex.lo;
+        s += lang === "jp"
+          ? `<div class="dial-hint">最高 ${hi[1].toFixed(2)}（${dialClock(hi[0])}）<br>最低 ${lo[1].toFixed(2)}（${dialClock(lo[0])}）</div>`
+          : `<div class="dial-hint">high ${hi[1].toFixed(2)} at ${dialClock(hi[0])}<br>low ${lo[1].toFixed(2)} at ${dialClock(lo[0])}</div>`;
       }
+      return s;
+    }
+  },
+
+  do: {
+    bands: () => PROFILE.do, dp: 1, minSpan: 50, grid: (g) => g + "%", orb: () => "#60a5fa",
+    // A water line in the hub at the current saturation (moved by dialsSetLive).
+    under: () => `<defs><clipPath id="do-hub"><circle cx="${DIAL.cx}" cy="${DIAL.cy}" r="72"/></clipPath></defs>` +
+      `<circle cx="${DIAL.cx}" cy="${DIAL.cy}" r="72" class="dial-hub"/>` +
+      `<g clip-path="url(#do-hub)"><path class="dial-wave dial-wave-back" data-wave="-3"/><path class="dial-wave" data-wave="0"/></g>`,
+    trace: (d, scale, ang) => {
+      // Filled like water down to the inner edge, with a bubble each hour sized by saturation.
+      const segs = []; let cur = [];
+      d.forEach((p, i) => { if (i && p[0] - d[i - 1][0] > 15 * 60000) { segs.push(cur); cur = []; } cur.push(p); });
+      segs.push(cur);
+      const area = segs.filter(s => s.length > 1).map(s =>
+        dialLine(s, scale, ang) + s.slice().reverse().map(([t]) => "L" + dialP(dialPt(DIAL.r0, ang(t)))).join("") + "Z").join("");
+      let lastHour = null, bubbles = "";
+      for (const [t, v] of d) {
+        const h = Math.floor(t / 3600000);
+        if (h === lastHour) continue;
+        lastHour = h;
+        const [x, y] = dialPt(scale(v), ang(t));
+        bubbles += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(2 + v / 22).toFixed(1)}" class="dial-bubble"/>`;
+      }
+      return `<path class="dial-area-do" d="${area}"/><path class="dial-line-do" d="${dialLine(d, scale, ang)}"/>${bubbles}`;
+    },
+    center: (v, c, lang) => `<div class="dial-val" style="color:#bfdbfe">${v.toFixed(1)}<small>%</small></div>` +
+      (c.scrubbing ? "" : `<div class="dial-hint">${lightsOn(c.nowMin)
+        ? (lang === "jp" ? "植物が酸素を放出中 ↑" : "plants exhaling ↑")
+        : (lang === "jp" ? "夜間は減少 ↓" : "night draw-down ↓")}</div>`)
+  }
+};
+
+/* ---- render ---- */
+function renderDial(key) {
+  const el = document.getElementById(`${key}-dial`);
+  if (!el) return;
+  const cfg = DIAL_SENSORS[key], b = cfg.bands(), lang = dialLang();
+  const data = dialSeries?.[key] || [];
+  const nowMs = Date.now(), nowMin = centralNowMinutes();
+  const ang = (t) => (t - nowMs) / DAY_MS * 2 * Math.PI;
+  // A time-of-day window [m0, m1) in CT minutes, wherever it falls on today's dial.
+  const todArc = (r, m0, m1) => {
+    let off = wrapDay(m0 - nowMin); if (off > 720) off -= DAY_MIN;
+    const s = nowMs + off * 60000;
+    return dialArcA(r, ang(s), ang(s + (m1 - m0) * 60000));
+  };
+
+  const live = dialLatest[key] ?? (data.length ? data[data.length - 1][1] : null);
+  const ex = data.length > 1 ? dialExtent(data) : null;
+  // The scale fits the data, with a minimum span so a flat day stays flat;
+  // bands are clipped to whatever falls in view.
+  const vals = ex ? [ex.lo[1], ex.hi[1]] : (live != null ? [live, live] : [b.ideal[0], b.ideal[0]]);
+  if (live != null) { vals[0] = Math.min(vals[0], live); vals[1] = Math.max(vals[1], live); }
+  const mid = (vals[0] + vals[1]) / 2, span = Math.max((vals[1] - vals[0]) * 1.5, cfg.minSpan);
+  const lo = mid - span / 2, hi = mid + span / 2;
+  const scale = (v) => DIAL.r0 + (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo) * (DIAL.r1 - DIAL.r0);
+  const ctx = { scale, ang, todArc, ex, live, nowMin, lang };
+
+  let s = `<svg viewBox="0 0 400 400" aria-hidden="true" focusable="false">`;
+  // Light schedule on the rim, matching the day clock
+  s += `<circle class="dial-track" cx="${DIAL.cx}" cy="${DIAL.cy}" r="${DIAL.rl}"/>`;
+  const S = SCHEDULE;
+  [[S.out, S.morning + DAY_MIN, "dial-band-n"], [S.morning, S.day, "dial-band-m"],
+   [S.day, S.twilight, "dial-band-d"], [S.twilight, S.out, "dial-band-t"]]
+    .forEach(([a, z, cls]) => { s += `<path class="dial-band ${cls}" d="${todArc(DIAL.rl, a, z)}"/>`; });
+  let ticks = "";
+  const hourNames = lang === "jp" ? ["0時", "6時", "12時", "18時"] : ["12a", "6a", "12p", "6p"];
+  for (let h = 0; h < 24; h++) {
+    let off = wrapDay(h * 60 - nowMin); if (off > 720) off -= DAY_MIN;
+    const a = ang(nowMs + off * 60000), big = h % 6 === 0;
+    ticks += `M${dialP(dialPt(DIAL.rl - 12, a))}L${dialP(dialPt(DIAL.rl - (big ? 20 : 15), a))}`;
+    // Labels near the NOW marker hide so they don't collide with it.
+    if (big && Math.abs(off) > 100) {
+      const [x, y] = dialPt(DIAL.rl + 18, a);
+      s += `<text class="dial-hour" x="${x.toFixed(1)}" y="${(y + 4).toFixed(1)}" text-anchor="middle">${hourNames[h / 6]}</text>`;
+    }
+  }
+  s += `<path class="dial-ticks" d="${ticks}"/>`;
+
+  // Bands: ideal annulus, and a risk zone past each limit that's in view
+  const rr = (v) => scale(v);
+  if (b.ideal[1] > lo && b.ideal[0] < hi) s += `<path class="dial-ideal" fill-rule="evenodd" d="${dialRing(rr(b.ideal[1]), rr(b.ideal[0]))}"/>`;
+  if (b.limit[0] > lo) s += `<path class="dial-risk" fill-rule="evenodd" d="${dialRing(rr(b.limit[0]), DIAL.r0)}"/><circle class="dial-risk-edge" cx="${DIAL.cx}" cy="${DIAL.cy}" r="${rr(b.limit[0])}"/>`;
+  if (b.limit[1] < hi) s += `<path class="dial-risk" fill-rule="evenodd" d="${dialRing(DIAL.r1, rr(b.limit[1]))}"/><circle class="dial-risk-edge" cx="${DIAL.cx}" cy="${DIAL.cy}" r="${rr(b.limit[1])}"/>`;
+  for (const g of niceTicks(lo, hi)) {
+    s += `<circle class="dial-grid" cx="${DIAL.cx}" cy="${DIAL.cy}" r="${scale(g).toFixed(1)}"/>` +
+      `<text class="dial-scale" x="${DIAL.cx - 6}" y="${(DIAL.cy - scale(g) + 3.5).toFixed(1)}" text-anchor="end">${cfg.grid(g)}</text>`;
+  }
+
+  if (cfg.under && (ex || key === "do")) s += cfg.under(ctx);
+  if (data.length > 1) s += cfg.trace(data, scale, ang);
+  if (cfg.over && ex) s += cfg.over(ctx);
+
+  // NOW marker, the live reading's orb, and the scrub cursor
+  s += `<line class="dial-needle" x1="${DIAL.cx}" y1="${DIAL.cy - DIAL.r0 + 6}" x2="${DIAL.cx}" y2="${DIAL.cy - DIAL.rl - 6}"/>`;
+  s += `<path class="dial-notch" d="M${DIAL.cx - 7} ${DIAL.cy - DIAL.rl - 26}L${DIAL.cx + 7} ${DIAL.cy - DIAL.rl - 26}L${DIAL.cx} ${DIAL.cy - DIAL.rl - 15}Z"/>`;
+  s += `<g data-orb visibility="hidden"><circle r="8" data-orb-glow/><circle r="3" fill="#fff"/></g>`;
+  s += `<line class="dial-cursor" data-cur x1="${DIAL.cx}" y1="${DIAL.cy}" x2="${DIAL.cx}" y2="${DIAL.cy}" visibility="hidden"/><circle data-dot r="5" fill="#fff" visibility="hidden"/>`;
+  s += `</svg><div class="dial-center"></div>`;
+  el.innerHTML = s;
+
+  dialViews[key] = { el, cfg, ctx, data, scrub: null };
+  attachScrub(key);
+  dialsSetLive();
+}
+
+function renderDials() {
+  ["temp", "ph", "do"].forEach(renderDial);
+}
+
+// Live reading: the centre, the orb at NOW, the status pill and the update line.
+// Runs every 5s without rebuilding the dial.
+function dialsSetLive() {
+  const lang = dialLang();
+  ["temp", "ph", "do"].forEach((key) => {
+    const view = dialViews[key];
+    if (!view) return;
+    const { el, cfg, ctx, data } = view;
+    const live = dialLatest[key] ?? (data.length ? data[data.length - 1][1] : null);
+    ctx.live = live;
+
+    const pill = document.getElementById(`${key}-status`);
+    if (pill) {
+      pill.hidden = live == null;
+      if (live != null) {
+        const st = DIAL_STATUS[levelStatus(live, cfg.bands(), cfg.dp)];
+        pill.style.color = st.color;
+        pill.innerHTML = `<i></i>${st[lang]}`;
+      }
+    }
+
+    const orb = el.querySelector("[data-orb]");
+    if (orb && live != null) {
+      const [x, y] = dialPt(ctx.scale(live), 0), col = cfg.orb(live);
+      orb.setAttribute("transform", `translate(${x.toFixed(1)},${y.toFixed(1)})`);
+      orb.setAttribute("visibility", "visible");
+      const glow = orb.querySelector("[data-orb-glow]");
+      glow.setAttribute("fill", col);
+      glow.style.filter = `drop-shadow(0 0 9px ${col})`;
+    }
+    if (key === "do") {
+      const r = 72, lvl = DIAL.cy + r - Math.max(0, Math.min(1, (live ?? 0) / 100)) * 2 * r;
+      el.querySelectorAll("[data-wave]").forEach((w) => {
+        const y = lvl + Number(w.dataset.wave);
+        let d = `M${DIAL.cx - r - 120},${y.toFixed(1)}`;
+        for (let x = -r - 120; x <= r + 120; x += 30) d += `q15,${x % 60 ? 5 : -5} 30,0`;
+        w.setAttribute("d", d + `V${DIAL.cy + r + 10}H${DIAL.cx - r - 120}Z`);
+      });
+    }
+    if (!view.scrub) showDialCenter(key, live, null);
+
+    const lu = document.getElementById(`${key}-last-updated`);
+    if (lu) {
+      const sec = dialLatest.timestamp ? secondsAgo(dialLatest.timestamp) : null;
+      const sp = PROFILE[lang];
+      lu.textContent = lang === "jp"
+        ? `${sec == null ? "—" : sec + "秒前に更新"} · ${sp}基準`
+        : `${sec == null ? "Last updated —" : `Last updated ${sec}s ago`} · ${sp} targets`;
     }
   });
 }
 
-async function updateCharts() {
-  const history = await fetchHistory();
-  if (!Array.isArray(history) || history.length === 0) {
-    console.warn("No history returned; charts will be empty.");
-    return;
-  }
+function showDialCenter(key, v, ts) {
+  const { el, cfg, ctx } = dialViews[key];
+  const box = el.querySelector(".dial-center");
+  if (!box) return;
+  const lang = dialLang();
+  const when = `<span class="dial-when">${ts == null ? (lang === "jp" ? "いま" : "now") : dialClock(ts)}</span>`;
+  if (v == null) { box.innerHTML = `${when}<div class="dial-val dial-val-empty">--</div>`; return; }
+  box.innerHTML = when + cfg.center(v, { ...ctx, scrubbing: ts != null }, lang);
+}
 
-  const { keys: hourKeys, labels } = last24HoursCST();
-
-  // Pick fields robustly (support old/new shapes)
-  const tempBuckets = avgBucketsFromHistory(history, r =>
-    r.temperature_f ?? r.temp_f ?? r.value
-  );
-
-  const phBuckets = avgBucketsFromHistory(history, r =>
-    r.ph ?? r.pH ?? r.ph_value
-  );
-
-  const doBuckets = avgBucketsFromHistory(history, r => {
-    // Plot % saturation, matching the tile. 0.0 is the old broken push mapping
-    // rather than a reading, so it is dropped the same way mg/L was.
-    const v = r.do_percent;
-    return v ? v : undefined;
+// Hover (or drag on touch) over a ring to read any moment of the last 24h.
+function attachScrub(key) {
+  const view = dialViews[key], svg = view.el.querySelector("svg");
+  const cur = svg.querySelector("[data-cur]"), dot = svg.querySelector("[data-dot]");
+  const reset = () => {
+    view.scrub = null;
+    cur.setAttribute("visibility", "hidden");
+    dot.setAttribute("visibility", "hidden");
+    showDialCenter(key, view.ctx.live, null);
+  };
+  svg.addEventListener("pointermove", (e) => {
+    if (view.data.length < 2) return;
+    const r = svg.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width * 400 - DIAL.cx, y = (e.clientY - r.top) / r.height * 400 - DIAL.cy;
+    const d = Math.hypot(x, y);
+    if (d < DIAL.r0 - 20 || d > DIAL.rl + 20) return reset();
+    let a = Math.atan2(x, -y); if (a > 0) a -= 2 * Math.PI;   // only the past
+    const t = Date.now() + a / (2 * Math.PI) * DAY_MS;
+    const p = view.data.reduce((best, q) => Math.abs(q[0] - t) < Math.abs(best[0] - t) ? q : best);
+    if (Math.abs(p[0] - t) > 20 * 60000) return reset();       // in a feed gap
+    const [px, py] = dialPt(view.ctx.scale(p[1]), view.ctx.ang(p[0])), [qx, qy] = dialPt(DIAL.rl, view.ctx.ang(p[0]));
+    cur.setAttribute("x2", qx.toFixed(1)); cur.setAttribute("y2", qy.toFixed(1)); cur.setAttribute("visibility", "visible");
+    dot.setAttribute("cx", px.toFixed(1)); dot.setAttribute("cy", py.toFixed(1)); dot.setAttribute("visibility", "visible");
+    view.scrub = p;
+    showDialCenter(key, p[1], p[0]);
   });
-
-  const tempData = seriesFromBuckets(hourKeys, tempBuckets);
-  const phData   = seriesFromBuckets(hourKeys, phBuckets);
-  const doData   = seriesFromBuckets(hourKeys, doBuckets);
-
-  const tempCtx = document.getElementById("temp-chart")?.getContext("2d");
-  const phCtx   = document.getElementById("ph-chart")?.getContext("2d");
-  const doCtx   = document.getElementById("do-chart")?.getContext("2d");
-
-  if (tempCtx) {
-    if (!tempChart) tempChart = makeLineChart(tempCtx, labels, tempData, "#ff4d4d", "#ff4d4d", 0, "°F");
-    else { tempChart.data.labels = labels; tempChart.data.datasets[0].data = tempData; tempChart.update(); }
-  }
-
-  if (phCtx) {
-    if (!phChart) phChart = makeLineChart(phCtx, labels, phData, "#ffd86b", "#ffd86b", 0, "", 2);
-    else { phChart.data.labels = labels; phChart.data.datasets[0].data = phData; phChart.update(); }
-  }
-
-  if (doCtx) {
-    // visible points: trusted DO history only began 2026-08-17, so early on the
-    // line has isolated points that pointRadius 0 would hide entirely
-    if (!doChart) doChart = makeLineChart(doCtx, labels, doData, "#6fd3ff", "#6fd3ff", 2, "%");
-    else { doChart.data.labels = labels; doChart.data.datasets[0].data = doData; doChart.update(); }
-  }
-
-  // Debug: prove we have non-null points
-  // console.log("Chart points:", {
-  //   tempNonNull: tempData.filter(x => x != null).length,
-  //   doNonNull: doData.filter(x => x != null).length,
-  //   tdsNonNull: tdsData.filter(x => x != null).length
-  // });
+  svg.addEventListener("pointerleave", reset);
 }
 
 /* =======================
@@ -1033,14 +1172,14 @@ window.addEventListener("DOMContentLoaded", () => {
   applyLanguage();
 
   updateDashboard();
-  updateCharts();
+  updateDials();
   renderBiota();
   updateLightCycle();
   tickClock();
   updateMother();
 
   setInterval(updateDashboard, 5000);    // live values
-  setInterval(updateCharts, 60000);      // charts refresh every 60s
+  setInterval(updateDials, 60000);       // dials: history + rotation every 60s
   setInterval(updateLightCycle, 30000);  // light/CO2 phase every 30s
   setInterval(tickClock, 1000);          // live clock
   setInterval(updateMother, 60000);      // MO/TH/ER feed every 60s

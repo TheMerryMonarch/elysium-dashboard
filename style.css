@@ -333,43 +333,146 @@ main {
     opacity: 0.8;
 }
 
-.sensor-value {
-    font-size: 1.8rem;
-    font-weight: 600;
-    color: #ffbdf2;
-    text-shadow: 0 0 8px rgba(255, 106, 193, 0.7);
-    margin-left: auto;
-}
-
-.sensor-unit {
-    font-size: 0.72rem;
-    color: #c4b5fd;
-}
-
 .sensor-subtext {
     font-size: 0.66rem;
     color: #9aa0c0;
     margin: 2px 0 10px;
 }
 
-.chart-placeholder {
-    position: relative;   /* canvas is absolutely positioned inside, so it
-                             can't feed its height back into the grid row */
-    flex: 1;
-    min-height: 150px;
-    border-radius: 10px;
-    overflow: hidden;
-    background-color: #0b0a16;
-    background-image: radial-gradient(rgba(255, 255, 255, 0.09) 1px, transparent 1px);
-    background-size: 11px 11px;
+/* ==============
+   SENSOR DIALS
+   24h of readings around a dial that turns like the day clock. The SVG is
+   absolutely positioned inside an aspect-ratio box, so it can't feed its
+   size back into the grid row.
+   ============== */
+
+.sensor-head { justify-content: space-between; }
+
+.dial-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 10px;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+}
+.dial-status i {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 6px currentColor;
 }
 
-.chart-placeholder canvas {
+.dial-panel .sensor-subtext { margin-bottom: 4px; }
+.dial-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px 12px;
+    margin-top: 6px;
+    font-size: 0.66rem;
+    color: #9aa0c0;
+}
+.dial-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.dial-legend em { font-style: normal; }
+.dial-legend b { display: inline-block; width: 12px; height: 6px; border-radius: 2px; }
+.dial-legend .lg-ideal   { background: rgba(127, 255, 208, 0.35); border: 1px solid rgba(127, 255, 208, 0.6); }
+.dial-legend .lg-risk    { background: rgba(255, 77, 109, 0.3); border: 1px dashed rgba(255, 77, 109, 0.8); }
+.dial-legend .lg-swing   { border: 1px solid #9aa0c0; border-width: 1px 0; height: 7px; border-radius: 0; }
+.dial-legend .lg-co2     { height: 3px; background: radial-gradient(circle, #7fffd0 1.4px, transparent 1.6px) 0 50% / 4px 3px repeat-x; }
+.dial-legend .lg-caliper { width: 6px; height: 10px; border: 1.5px solid #9aa0c0; border-left: 0; border-radius: 0; }
+.dial-legend .lg-bubble  { width: 8px; height: 8px; border-radius: 50%; border: 1px solid #93c5fd; background: rgba(96, 165, 250, 0.25); }
+.dial-wrap { flex: 1; display: flex; align-items: center; }
+.dial {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    aspect-ratio: 1 / 1;
+    container-type: inline-size;
+}
+.dial svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; touch-action: pan-y; }
+
+.dial-track  { fill: none; stroke: rgba(255, 255, 255, 0.05); stroke-width: 10; }
+.dial-band   { fill: none; stroke-width: 5; }
+.dial-band-n { stroke: #4deeea; stroke-opacity: 0.22; }
+.dial-band-m { stroke: #b8a9ff; stroke-opacity: 0.85; }
+.dial-band-d { stroke: #ffd86b; }
+.dial-band-t { stroke: #ff6ac1; }
+.dial-ticks  { fill: none; stroke: #5f5485; stroke-width: 1.5; }
+.dial-hour   { font-size: 12px; fill: #9a8fc0; letter-spacing: 0.08em; }
+.dial-grid   { fill: none; stroke: rgba(196, 181, 253, 0.10); stroke-width: 1; stroke-dasharray: 2 5; }
+.dial-scale  { font-size: 10px; fill: #7d72a8; }
+.dial-ideal  { fill: rgba(127, 255, 208, 0.07); stroke: rgba(127, 255, 208, 0.3); stroke-width: 1; }
+.dial-risk   { fill: rgba(255, 77, 109, 0.11); }
+.dial-risk-edge { fill: none; stroke: rgba(255, 77, 109, 0.55); stroke-width: 1; stroke-dasharray: 4 3; }
+.dial-swing-edge { fill: none; stroke-opacity: 0.6; stroke-width: 1.2; }
+.dial-needle { stroke: #f9eaff; stroke-width: 2; stroke-linecap: round; opacity: 0.8; }
+.dial-notch  { fill: #f9eaff; }
+.dial-cursor { stroke: rgba(249, 234, 255, 0.5); stroke-width: 1; stroke-dasharray: 3 4; }
+.dial-caliper { font-size: 12px; font-variant-numeric: tabular-nums; }
+
+.dial-co2-track { fill: none; stroke: rgba(127, 255, 208, 0.07); stroke-width: 6; }
+.dial-co2 {
+    fill: none;
+    stroke: #7fffd0;
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-dasharray: 0 9;
+    filter: drop-shadow(0 0 4px rgba(127, 255, 208, 0.6));
+    animation: dcBubbles 1.4s linear infinite;
+}
+.dial-line-ph {
+    fill: none;
+    stroke: #ff6ac1;
+    stroke-width: 3;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 0 6px rgba(255, 106, 193, 0.7));
+}
+.dial-line-do {
+    fill: none;
+    stroke: #60a5fa;
+    stroke-width: 2.5;
+    filter: drop-shadow(0 0 6px rgba(96, 165, 250, 0.8));
+}
+.dial-area-do { fill: rgba(96, 165, 250, 0.12); }
+.dial-bubble  { fill: rgba(96, 165, 250, 0.25); stroke: #93c5fd; stroke-width: 1; }
+.dial-hub     { fill: rgba(96, 165, 250, 0.04); stroke: rgba(96, 165, 250, 0.18); }
+.dial-wave    { fill: rgba(96, 165, 250, 0.22); animation: dialWave 6s linear infinite; }
+.dial-wave-back { fill: rgba(96, 165, 250, 0.1); animation-duration: 9s; animation-direction: reverse; }
+@keyframes dialWave { to { transform: translateX(-120px); } }
+
+.dial-center {
     position: absolute;
-    inset: 0;
-    width: 100% !important;
-    height: 100% !important;
-    display: block;
+    left: 50%;
+    top: 51.25%;                    /* the dial's centre: 205 / 400 */
+    transform: translate(-50%, -50%);
+    width: 44%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(2px, 1cqw, 5px);
+    text-align: center;
+    pointer-events: none;
+}
+.dial-when { font-size: 10px; letter-spacing: 0.2em; color: #e6d8ff; text-transform: uppercase; }
+.dial-val {
+    font-size: clamp(26px, 10.5cqw, 54px);
+    font-weight: 650;
+    line-height: 1;
+    text-shadow: 0 0 12px currentColor;
+    font-variant-numeric: tabular-nums;
+}
+.dial-val small { font-size: 0.42em; font-weight: 500; margin-left: 2px; opacity: 0.85; }
+.dial-val-empty { color: #9a8fc0; }
+.dial-sub  { font-size: clamp(11px, 3cqw, 13px); color: #c4b5fd; }
+.dial-hint { font-size: clamp(10px, 2.6cqw, 12px); color: #9aa0c0; line-height: 1.4; font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+    .dial-co2, .dial-wave { animation: none; }
 }
 
 /* ==============
@@ -1046,12 +1149,3 @@ main {
     background: rgba(109, 255, 143, 0.45);
 }
 
-/* Unit rides with the headline reading. Smaller and slightly receded so the
-   number still leads, but the figure is legible without the sub-line. */
-.sensor-value .unit {
-    font-size: 0.58em;
-    font-weight: 500;
-    opacity: 0.72;
-    margin-left: 0.08em;
-    letter-spacing: 0.01em;
-}
