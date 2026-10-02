@@ -353,6 +353,8 @@ main {
 }
 
 .chart-placeholder {
+    position: relative;   /* canvas is absolutely positioned inside, so it
+                             can't feed its height back into the grid row */
     flex: 1;
     min-height: 150px;
     border-radius: 10px;
@@ -363,6 +365,8 @@ main {
 }
 
 .chart-placeholder canvas {
+    position: absolute;
+    inset: 0;
     width: 100% !important;
     height: 100% !important;
     display: block;
