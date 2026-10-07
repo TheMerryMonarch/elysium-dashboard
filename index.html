@@ -187,7 +187,7 @@
 
     <div class="compact-right">
       <!-- Sensor dials: 24h of readings around a dial that turns like the day
-           clock, so the same hour sits at the same angle on all four. -->
+           clock, so the same hour sits at the same angle on all five. -->
       <section class="sensor-panel dial-panel">
         <div class="sensor-head">
           <span class="sensor-name" id="temp-label">Temperature</span>
@@ -219,6 +219,17 @@
         <div class="dial-wrap"><div class="dial" id="do-dial"></div></div>
         <div class="swing-meter" id="do-swing" role="img"></div>
         <div class="dial-legend"><span><b class="lg-ideal"></b><em data-en="ideal" data-jp="適正">ideal</em></span><span><b class="lg-risk"></b><em data-en="risk" data-jp="危険">risk</em></span><span><b class="lg-bubble"></b><em data-en="hourly" data-jp="毎時">hourly</em></span></div>
+      </section>
+
+      <section class="sensor-panel dial-panel">
+        <div class="sensor-head">
+          <span class="sensor-name" id="orp-label">ORP</span>
+          <span class="dial-status" id="orp-status" hidden></span>
+        </div>
+        <div id="orp-last-updated" class="sensor-subtext">Last updated —</div>
+        <div class="dial-wrap"><div class="dial" id="orp-dial"></div></div>
+        <div class="swing-meter" id="orp-swing" role="img"></div>
+        <div class="dial-legend"><span><em data-en="trend only until calibrated" data-jp="校正まで傾向のみ">trend only until calibrated</em></span></div>
       </section>
     </div>
   </div>
@@ -273,6 +284,7 @@ const translations = {
     temp: "Temperature",
     ph: "pH",
     doLabel: "Dissolved Oxygen",
+    orp: "ORP",
     biota: "Interesting Flora & Fauna",
     specs: "Specs",
     sleepTitle: "Shh — the shrimp are sleeping",
@@ -287,6 +299,7 @@ const translations = {
     temp: "水温",
     ph: "pH",
     doLabel: "溶存酸素",
+    orp: "酸化還元電位",
     biota: "興味深い動植物",
     specs: "機材",
     sleepTitle: "しーっ — エビたちは眠っています",
@@ -324,6 +337,9 @@ function applyLanguage() {
 
   const dl = document.getElementById("do-label");
   if (dl) dl.textContent = t.doLabel;
+
+  const ol = document.getElementById("orp-label");
+  if (ol) ol.textContent = t.orp;
 
   document.querySelector(".lang-toggle").textContent = t.button;
 
@@ -366,8 +382,9 @@ async function updateDashboard() {
   const phVal = num(data.ph ?? data.pH ?? data.ph_value);
   // 0.0 is the old broken push mapping rather than a reading.
   const doPct = num(data.do_percent) || null;
+  const orp = num(data.orp_mv);
 
-  dialLatest = { temp, ph: phVal, do: doPct, timestamp: data.timestamp };
+  dialLatest = { temp, ph: phVal, do: doPct, orp, timestamp: data.timestamp };
   dialsSetLive();
 
   // Feed the soundscape: pH sets its key, DO its tempo, temperature its tone.
@@ -437,7 +454,7 @@ const swingStatus = (s, sw) => s >= sw.risk ? "risk" : s >= sw.watch ? "watch" :
 const DIAL = { cx: 200, cy: 205, r0: 92, r1: 150, rl: 172 };
 const DAY_MS = 864e5;
 
-let dialSeries = null;   // { temp, ph, do }: [[ms, value], ...] in 5-min buckets
+let dialSeries = null;   // { temp, ph, do, orp }: [[ms, value], ...] in 5-min buckets
 let dialLatest = {};     // newest /latest reading
 const dialViews = {};    // per-sensor render state, for live updates + scrubbing
 
@@ -465,7 +482,8 @@ async function updateDials() {
     dialSeries = {
       temp: bucketHistory(history, r => r.temperature_f ?? r.temp_f ?? r.value),
       ph:   bucketHistory(history, r => r.ph ?? r.pH ?? r.ph_value),
-      do:   bucketHistory(history, r => r.do_percent || null)
+      do:   bucketHistory(history, r => r.do_percent || null),
+      orp:  bucketHistory(history, r => r.orp_mv)
     };
   }
   renderDials();
@@ -492,8 +510,8 @@ function dialExtent(d) {
   return { lo, hi, swing: hi[1] - lo[1] };
 }
 function niceTicks(lo, hi) {
-  const span = hi - lo, steps = [0.1, 0.2, 0.25, 0.5, 1, 2, 2.5, 5, 10, 20, 25];
-  const step = steps.find(s => span / s <= 4) || 25, out = [];
+  const span = hi - lo, steps = [0.1, 0.2, 0.25, 0.5, 1, 2, 2.5, 5, 10, 20, 25, 50, 100];
+  const step = steps.find(s => span / s <= 4) || 100, out = [];
   for (let v = Math.ceil(lo / step) * step; v <= hi - step * 0.3; v += step) {
     if (v > lo + step * 0.3) out.push(+v.toFixed(2));
   }
@@ -568,8 +586,20 @@ const DIAL_SENSORS = {
       (c.scrubbing ? "" : `<div class="dial-hint">${lightsOn(c.nowMin)
         ? (lang === "jp" ? "植物が酸素を放出中 ↑" : "plants exhaling ↑")
         : (lang === "jp" ? "夜間は減少 ↓" : "night draw-down ↓")}</div>`)
+  },
+
+  // The probe hasn't been calibrated, so its millivolts are a trend, not a
+  // number to judge: no bands, no swing thresholds, and a neutral pill. Give
+  // it a profile entry and drop `uncalibrated` once it's been calibrated.
+  orp: {
+    bands: () => null, uncalibrated: true, dp: 0, minSpan: 50, grid: (g) => g, orb: () => "#a78bfa",
+    trace: (d, scale, ang) => `<path class="dial-line-orp" d="${dialLine(d, scale, ang)}"/>`,
+    swingFmt: (x) => Math.round(x) + " mV", valFmt: (x) => Math.round(x) + " mV",
+    center: (v, c, lang) => `<div class="dial-val" style="color:#ddd6fe">${Math.round(v)}<small>mV</small></div>` +
+      `<div class="dial-sub">${lang === "jp" ? "酸化還元電位" : "redox potential"}</div>`
   }
 };
+const DIAL_UNCALIBRATED = { color: "#9aa0c0", en: "uncalibrated", jp: "未校正" };
 
 /* ---- render ---- */
 function renderDial(key) {
@@ -590,7 +620,7 @@ function renderDial(key) {
   const ex = data.length > 1 ? dialExtent(data) : null;
   // The scale fits the data, with a minimum span so a flat day stays flat;
   // bands are clipped to whatever falls in view.
-  const vals = ex ? [ex.lo[1], ex.hi[1]] : (live != null ? [live, live] : [b.ideal[0], b.ideal[0]]);
+  const vals = ex ? [ex.lo[1], ex.hi[1]] : (live != null ? [live, live] : b ? [b.ideal[0], b.ideal[0]] : [0, 0]);
   if (live != null) { vals[0] = Math.min(vals[0], live); vals[1] = Math.max(vals[1], live); }
   const mid = (vals[0] + vals[1]) / 2, span = Math.max((vals[1] - vals[0]) * 1.5, cfg.minSpan);
   const lo = mid - span / 2, hi = mid + span / 2;
@@ -620,9 +650,9 @@ function renderDial(key) {
 
   // Bands: ideal annulus, and a risk zone past each limit that's in view
   const rr = (v) => scale(v);
-  if (b.ideal[1] > lo && b.ideal[0] < hi) s += `<path class="dial-ideal" fill-rule="evenodd" d="${dialRing(rr(b.ideal[1]), rr(b.ideal[0]))}"/>`;
-  if (b.limit[0] > lo) s += `<path class="dial-risk" fill-rule="evenodd" d="${dialRing(rr(b.limit[0]), DIAL.r0)}"/><circle class="dial-risk-edge" cx="${DIAL.cx}" cy="${DIAL.cy}" r="${rr(b.limit[0])}"/>`;
-  if (b.limit[1] < hi) s += `<path class="dial-risk" fill-rule="evenodd" d="${dialRing(DIAL.r1, rr(b.limit[1]))}"/><circle class="dial-risk-edge" cx="${DIAL.cx}" cy="${DIAL.cy}" r="${rr(b.limit[1])}"/>`;
+  if (b && b.ideal[1] > lo && b.ideal[0] < hi) s += `<path class="dial-ideal" fill-rule="evenodd" d="${dialRing(rr(b.ideal[1]), rr(b.ideal[0]))}"/>`;
+  if (b && b.limit[0] > lo) s += `<path class="dial-risk" fill-rule="evenodd" d="${dialRing(rr(b.limit[0]), DIAL.r0)}"/><circle class="dial-risk-edge" cx="${DIAL.cx}" cy="${DIAL.cy}" r="${rr(b.limit[0])}"/>`;
+  if (b && b.limit[1] < hi) s += `<path class="dial-risk" fill-rule="evenodd" d="${dialRing(DIAL.r1, rr(b.limit[1]))}"/><circle class="dial-risk-edge" cx="${DIAL.cx}" cy="${DIAL.cy}" r="${rr(b.limit[1])}"/>`;
   for (const g of niceTicks(lo, hi)) {
     s += `<circle class="dial-grid" cx="${DIAL.cx}" cy="${DIAL.cy}" r="${scale(g).toFixed(1)}"/>` +
       `<text class="dial-scale" x="${DIAL.cx - 6}" y="${(DIAL.cy - scale(g) + 3.5).toFixed(1)}" text-anchor="end">${cfg.grid(g)}</text>`;
@@ -651,7 +681,7 @@ function renderDial(key) {
 function renderSwingMeter(key, ex) {
   const el = document.getElementById(`${key}-swing`);
   if (!el) return;
-  const cfg = DIAL_SENSORS[key], sw = cfg.bands().swing, lang = dialLang();
+  const cfg = DIAL_SENSORS[key], sw = cfg.bands()?.swing, lang = dialLang();
   if (!ex || !sw) { el.innerHTML = ""; return; }
   const st = swingStatus(ex.swing, sw), col = DIAL_STATUS[st].color;
   const max = sw.risk * 1.5, A = Math.PI / 3, cx = 120, cy = 112, r = 92;
@@ -676,14 +706,14 @@ function renderSwingMeter(key, ex) {
 }
 
 function renderDials() {
-  ["temp", "ph", "do"].forEach(renderDial);
+  Object.keys(DIAL_SENSORS).forEach(renderDial);
 }
 
 // Live reading: the centre, the orb at NOW, the status pill and the update line.
 // Runs every 5s without rebuilding the dial.
 function dialsSetLive() {
   const lang = dialLang();
-  ["temp", "ph", "do"].forEach((key) => {
+  Object.keys(DIAL_SENSORS).forEach((key) => {
     const view = dialViews[key];
     if (!view) return;
     const { el, cfg, ctx, data } = view;
@@ -694,7 +724,7 @@ function dialsSetLive() {
     if (pill) {
       pill.hidden = live == null;
       if (live != null) {
-        const st = DIAL_STATUS[levelStatus(live, cfg.bands(), cfg.dp)];
+        const st = cfg.uncalibrated ? DIAL_UNCALIBRATED : DIAL_STATUS[levelStatus(live, cfg.bands(), cfg.dp)];
         pill.style.color = st.color;
         pill.innerHTML = `<i></i>${st[lang]}`;
       }
@@ -723,10 +753,10 @@ function dialsSetLive() {
     const lu = document.getElementById(`${key}-last-updated`);
     if (lu) {
       const sec = dialLatest.timestamp ? secondsAgo(dialLatest.timestamp) : null;
-      const sp = PROFILE[lang];
+      const sp = cfg.bands() ? PROFILE[lang] : null;
       lu.textContent = lang === "jp"
-        ? `${sec == null ? "—" : sec + "秒前に更新"} · ${sp}基準`
-        : `${sec == null ? "Last updated —" : `Last updated ${sec}s ago`} · ${sp} targets`;
+        ? `${sec == null ? "—" : sec + "秒前に更新"}${sp ? ` · ${sp}基準` : ""}`
+        : `${sec == null ? "Last updated —" : `Last updated ${sec}s ago`}${sp ? ` · ${sp} targets` : ""}`;
     }
   });
 }
