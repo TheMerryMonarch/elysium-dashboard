@@ -108,6 +108,9 @@
     <div class="mother-screen" id="mother-screen">
       <div class="mother-boot">STANDING WATCH. NOTHING TO REPORT YET.<span class="mother-cursor"></span></div>
     </div>
+    <!-- What she is reading, and the viewers' vote on what she reads next.
+         Filled by updateBallot(); stays hidden until the cloud has a ballot. -->
+    <div class="mother-reading" id="mother-reading" hidden></div>
   </section>
 
   </div>
@@ -1035,6 +1038,164 @@ async function updateMother() {
   }
 }
 
+/* =======================
+   MO/TH/ER READING BALLOT
+   She reads one passage at a time (8-13 days). Three days in, viewers vote on
+   the next: "Continue the story?" or one of two other works. Voting closes 24h
+   before the next passage; a tie is hers to break. The Pi runs the calendar;
+   this panel only shows it and casts one vote per browser.
+======================= */
+const BALLOT_TEXT = {
+  en: {
+    reading: "NOW READING", day: (d, n) => `DAY ${d} OF ${n}`,
+    locked: n => `NEXT READING · VOTING LOCKED FOR ${n} DAY${n === 1 ? "" : "S"}`,
+    open: "VOTE ON MY NEXT READING", closesDays: n => `CLOSES IN ${n} DAY${n === 1 ? "" : "S"}`,
+    closesHours: n => `CLOSES IN ${n} H`, voted: "YOUR VOTE IS LOGGED",
+    closed: "VOTING CLOSED · COUNTING", tie: "VOTING CLOSED · A TIE · MO/TH/ER WILL DECIDE",
+    none: "VOTING CLOSED · NO VOTES · MO/TH/ER WILL DECIDE", next: "NEXT READING",
+    begins: wd => `BEGINS ${wd}`, votes: "BY VOTE", mother: "MO/TH/ER DECIDED", random: "BY LOT",
+    cont: "CONTINUE THE STORY?", failed: "VOTE NOT RECORDED. TRY AGAIN.",
+  },
+  jp: {
+    reading: "読書中", day: (d, n) => `${n}日中${d}日目`,
+    locked: n => `次の読書 · 投票開始まであと${n}日`,
+    open: "次の読書に投票", closesDays: n => `締切まであと${n}日`,
+    closesHours: n => `締切まであと${n}時間`, voted: "投票を受け付けました",
+    closed: "投票締切 · 集計中", tie: "投票締切 · 同数 · MO/TH/ERが決定します",
+    none: "投票締切 · 投票なし · MO/TH/ERが決定します", next: "次の読書",
+    begins: wd => `${wd}開始`, votes: "投票により", mother: "MO/TH/ERが決定", random: "抽選により",
+    cont: "続きを読む？", failed: "投票できませんでした。もう一度お試しください。",
+  },
+};
+const BALLOT_DAY_MS = 24 * 60 * 60 * 1000;
+
+// --- ballot view (pure; no DOM, so it can be tested outside a browser) ---
+function ballotView(b, nowMs, myVote, lang, weekdayFmt) {
+  if (!b || !b.now_reading) return null;
+  const t = BALLOT_TEXT[lang] || BALLOT_TEXT.en;
+  const nr = b.now_reading;
+  const view = {
+    reading: `${t.reading} · ${nr.author}, ${nr.work_title}`,
+    passage: `${nr.title} · ${t.day(nr.day, nr.days)}`,
+    status: b.status, headline: "", note: "", canVote: false, options: [],
+  };
+  const opts = Array.isArray(b.options) ? b.options : [];
+  const label = o => o.continue ? t.cont : `${o.author}, ${o.work_title}`;
+  view.options = opts.map(o => ({ id: o.id, main: label(o), sub: o.continue ? `${o.work_title}, ${o.title}` : o.title,
+                                  chosen: myVote === o.id }));
+  const opens = Date.parse(b.opens_at), closes = Date.parse(b.closes_at);
+  if (b.status === "locked") {
+    view.headline = t.locked(Math.max(1, Math.ceil((opens - nowMs) / BALLOT_DAY_MS)));
+  } else if (b.status === "open") {
+    const left = closes - nowMs;
+    view.headline = myVote ? t.voted
+      : `${t.open} · ${left >= BALLOT_DAY_MS ? t.closesDays(Math.floor(left / BALLOT_DAY_MS)) : t.closesHours(Math.max(1, Math.ceil(left / 3600000)))}`;
+    view.canVote = !myVote;
+  } else if (b.status === "closed") {
+    view.headline = t.closed;
+  } else if (b.status === "tie") {
+    const counted = b.result && b.result.counts && Object.keys(b.result.counts).length;
+    view.headline = counted ? t.tie : t.none;
+  } else if (b.status === "decided" && b.result) {
+    const win = opts.find(o => o.id === b.result.winner);
+    view.headline = `${t.next} · ${win ? (win.continue ? `${win.work_title}, ${win.title}` : `${win.author}, ${win.work_title}`) : ""}`;
+    const by = t[b.result.decided_by] || "";
+    const when = t.begins(weekdayFmt(new Date(b.next_start_at)));
+    view.note = [by, when].filter(Boolean).join(" · ");
+    if (b.result.decided_by === "mother" && b.result.reason) view.reason = b.result.reason;
+    view.options = view.options.map(o => ({ ...o, chosen: o.id === b.result.winner }));
+  }
+  return view;
+}
+// --- end ballot view ---
+
+function ballotStore(key, value) {
+  try {
+    if (value === undefined) return localStorage.getItem(key);
+    localStorage.setItem(key, value);
+  } catch (e) { /* private window: a vote still counts, it just is not remembered here */ }
+  return null;
+}
+
+function voterToken() {
+  let tok = ballotStore("mother_voter");
+  if (!tok || !/^[A-Za-z0-9_-]{16,128}$/.test(tok)) {
+    const bytes = new Uint8Array(16);
+    (window.crypto || {}).getRandomValues ? crypto.getRandomValues(bytes)
+      : bytes.forEach((_, i) => { bytes[i] = Math.floor(Math.random() * 256); });
+    tok = Array.from(bytes, x => x.toString(16).padStart(2, "0")).join("");
+    ballotStore("mother_voter", tok);
+  }
+  return tok;
+}
+
+let currentBallot = null;
+const ballotWeekday = () => new Intl.DateTimeFormat(currentLang === "jp" ? "ja-JP" : "en-US",
+  { timeZone: MOTHER_TZ, weekday: currentLang === "jp" ? "short" : "long" });
+
+function renderBallot(errorText) {
+  const box = document.getElementById("mother-reading");
+  if (!box) return;
+  const b = currentBallot;
+  const myVote = b ? ballotStore(`mother_vote_${b.id}`) : null;
+  const fmt = ballotWeekday();
+  const v = ballotView(b, Date.now(), myVote, currentLang, d => fmt.format(d).toUpperCase());
+  if (!v) { box.hidden = true; return; }
+
+  const el = (tag, cls, text) => {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text !== undefined) n.textContent = text;
+    return n;
+  };
+  const frag = document.createDocumentFragment();
+  frag.append(el("div", "mr-now", v.reading), el("div", "mr-passage", v.passage), el("div", "mr-head", v.headline));
+  const list = el("div", "mr-options");
+  for (const o of v.options) {
+    const btn = el("button", "mr-option" + (o.chosen ? " is-chosen" : ""));
+    btn.type = "button";
+    btn.disabled = !v.canVote;
+    btn.append(el("span", "mr-opt-main", o.main), el("span", "mr-opt-sub", o.sub));
+    if (v.canVote) btn.addEventListener("click", () => castVote(o.id));
+    list.appendChild(btn);
+  }
+  frag.appendChild(list);
+  if (v.note) frag.appendChild(el("div", "mr-note", v.note));
+  if (v.reason) frag.appendChild(el("div", "mr-reason", v.reason));
+  if (errorText) frag.appendChild(el("div", "mr-error", errorText));
+  box.replaceChildren(frag);
+  box.hidden = false;
+}
+
+async function castVote(optionId) {
+  const b = currentBallot;
+  if (!b) return;
+  try {
+    const r = await fetch(`${API_BASE}/ballot/vote`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ballot_id: b.id, option: optionId, voter: voterToken() }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.detail || `HTTP ${r.status}`);
+    ballotStore(`mother_vote_${b.id}`, data.already || optionId);
+    renderBallot();
+  } catch (err) {
+    console.error("vote failed:", err);
+    renderBallot((BALLOT_TEXT[currentLang] || BALLOT_TEXT.en).failed);
+  }
+}
+
+async function updateBallot() {
+  try {
+    const r = await fetch(`${API_BASE}/ballot`, { cache: "no-store" });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    currentBallot = (await r.json()).ballot || null;
+    renderBallot();
+  } catch (err) {
+    console.error("ballot fetch failed:", err);  // keep whatever was last shown
+  }
+}
+
 /* Keep the terminal no taller than the video beside it. The frame is sized by
    aspect-ratio off a fluid column, so its height is only known at runtime --
    CSS alone cannot express "match that box". Observed rather than measured
@@ -1246,12 +1407,14 @@ window.addEventListener("DOMContentLoaded", () => {
   updateLightCycle();
   tickClock();
   updateMother();
+  updateBallot();
 
   setInterval(updateDashboard, 5000);    // live values
   setInterval(updateDials, 60000);       // dials: history + rotation every 60s
   setInterval(updateLightCycle, 30000);  // light/CO2 phase every 30s
   setInterval(tickClock, 1000);          // live clock
   setInterval(updateMother, 60000);      // MO/TH/ER feed every 60s
+  setInterval(updateBallot, 60000);      // reading ballot every 60s
 });
 </script>
 

@@ -996,6 +996,76 @@ main {
     letter-spacing: 0.1em;
 }
 
+/* What she is reading, and the viewers' ballot. A fixed footer under the
+   scrolling log: same phosphor, quieter, never taller than it needs to be. */
+.mother-reading {
+    flex: none;
+    font-family: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
+    padding: 0.7rem 1.1rem 0.85rem;
+    border-top: 1px solid rgba(109, 255, 143, 0.25);
+    background: rgba(109, 255, 143, 0.04);
+    color: #8bffa8;
+    font-size: 0.72rem;
+    line-height: 1.45;
+}
+.mother-reading[hidden] { display: none; }
+.mr-now {
+    font-size: 0.6rem;
+    letter-spacing: 0.18em;
+    color: rgba(109, 255, 143, 0.92);
+    text-transform: uppercase;
+}
+.mr-passage {
+    margin: 0.15rem 0 0.55rem;
+    color: #a8ffbe;
+}
+.mr-head {
+    font-size: 0.6rem;
+    letter-spacing: 0.16em;
+    color: rgba(139, 255, 168, 0.75);
+    margin-bottom: 0.4rem;
+}
+.mr-options {
+    display: grid;
+    gap: 0.35rem;
+}
+.mr-option {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    width: 100%;
+    text-align: left;
+    font: inherit;
+    color: #a8ffbe;
+    padding: 0.4rem 0.6rem;
+    border-radius: 8px;
+    border: 1px solid rgba(109, 255, 143, 0.3);
+    background: rgba(2, 16, 7, 0.6);
+    cursor: pointer;
+}
+.mr-option:disabled { cursor: default; opacity: 0.62; }
+.mr-option:not(:disabled):hover,
+.mr-option:not(:disabled):focus-visible {
+    border-color: #6dff8f;
+    box-shadow: 0 0 8px rgba(109, 255, 143, 0.35);
+    outline: none;
+}
+.mr-option.is-chosen {
+    opacity: 1;
+    border-color: #6dff8f;
+    background: rgba(109, 255, 143, 0.12);
+}
+.mr-opt-main { font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.mr-opt-sub { font-size: 0.68rem; color: rgba(168, 255, 190, 0.78); overflow-wrap: anywhere; }
+.mr-note, .mr-error {
+    margin-top: 0.45rem;
+    font-size: 0.58rem;
+    letter-spacing: 0.16em;
+    color: rgba(139, 255, 168, 0.6);
+}
+.mr-reason { margin-top: 0.3rem; font-style: italic; color: #a8ffbe; }
+.mr-error { color: #ffcf6d; }
+
 @media (prefers-reduced-motion: reduce) {
     .mother-cursor { animation: none; }
 }
