@@ -327,6 +327,8 @@ function applyLanguage() {
   }
   // Badge may currently read SLEEPING; refresh it in the new language.
   if (window.__elysiumRefreshStreamPhase) window.__elysiumRefreshStreamPhase();
+  // The reading ballot has its own EN/JP wording; redraw it now, not in a minute.
+  if (typeof renderBallot === "function") renderBallot();
 
   const bt = document.getElementById("biota-title");
   if (bt) bt.textContent = t.biota;
