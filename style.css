@@ -375,6 +375,8 @@ main {
 .swing-zone-ideal { stroke: rgba(127, 255, 208, 0.12); }
 .swing-zone-watch { stroke: rgba(255, 216, 107, 0.14); }
 .swing-zone-risk  { stroke: rgba(255, 77, 109, 0.16); }
+.swing-zone-base  { stroke: rgba(167, 139, 250, 0.16); }
+.swing-value-empty { fill: #7d72a8; }
 .swing-fill   { fill: none; stroke-width: 8; stroke-linecap: round; }
 .swing-notch  { stroke: #f9eaff; stroke-opacity: 0.55; stroke-width: 1.5; }
 .swing-limit  { font-size: 9px; fill: #7d72a8; font-variant-numeric: tabular-nums; }
