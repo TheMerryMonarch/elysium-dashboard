@@ -397,6 +397,8 @@ main {
 .dial-legend .lg-ideal   { background: rgba(127, 255, 208, 0.35); border: 1px solid rgba(127, 255, 208, 0.6); }
 .dial-legend .lg-risk    { background: rgba(255, 77, 109, 0.3); border: 1px dashed rgba(255, 77, 109, 0.8); }
 .dial-legend .lg-co2     { height: 3px; background: radial-gradient(circle, #7fffd0 1.4px, transparent 1.6px) 0 50% / 4px 3px repeat-x; }
+.dial-legend .lg-baseline { background: rgba(167, 139, 250, 0.3); border: 1px dashed rgba(196, 181, 253, 0.8); }
+.dial-legend .lg-redox    { width: 22px; background: linear-gradient(90deg, rgba(255, 181, 71, 0.7), rgba(167, 139, 250, 0.2), rgba(77, 238, 234, 0.7)); }
 .dial-legend .lg-bubble  { width: 8px; height: 8px; border-radius: 50%; border: 1px solid #93c5fd; background: rgba(96, 165, 250, 0.25); }
 .dial-wrap { flex: 1; display: flex; align-items: center; }
 .dial {
@@ -455,6 +457,8 @@ main {
     stroke-linejoin: round;
     filter: drop-shadow(0 0 6px rgba(167, 139, 250, 0.7));
 }
+.dial-baseline     { fill: rgba(167, 139, 250, 0.12); stroke: rgba(196, 181, 253, 0.45); stroke-width: 1; stroke-dasharray: 3 3; }
+.dial-baseline-mid { fill: none; stroke: rgba(196, 181, 253, 0.35); stroke-width: 1; }
 .dial-area-do { fill: rgba(96, 165, 250, 0.12); }
 .dial-bubble  { fill: rgba(96, 165, 250, 0.25); stroke: #93c5fd; stroke-width: 1; }
 .dial-hub     { fill: rgba(96, 165, 250, 0.04); stroke: rgba(96, 165, 250, 0.18); }

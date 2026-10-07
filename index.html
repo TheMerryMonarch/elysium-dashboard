@@ -229,7 +229,7 @@
         <div id="orp-last-updated" class="sensor-subtext">Last updated —</div>
         <div class="dial-wrap"><div class="dial" id="orp-dial"></div></div>
         <div class="swing-meter" id="orp-swing" role="img"></div>
-        <div class="dial-legend"><span><em data-en="trend only until calibrated" data-jp="校正まで傾向のみ">trend only until calibrated</em></span></div>
+        <div class="dial-legend"><span><b class="lg-baseline"></b><em data-en="baseline" data-jp="基準">baseline</em></span><span><b class="lg-redox"></b><em data-en="reducing → oxidizing" data-jp="還元 → 酸化">reducing → oxidizing</em></span></div>
       </section>
     </div>
   </div>
@@ -483,7 +483,8 @@ async function updateDials() {
       temp: bucketHistory(history, r => r.temperature_f ?? r.temp_f ?? r.value),
       ph:   bucketHistory(history, r => r.ph ?? r.pH ?? r.ph_value),
       do:   bucketHistory(history, r => r.do_percent || null),
-      orp:  bucketHistory(history, r => r.orp_mv)
+      // Readings from before the probe settled are the probe, not the tank.
+      orp:  bucketHistory(history, r => r.orp_mv).filter(([t]) => t >= Date.parse(ORP_BASELINE.since))
     };
   }
   renderDials();
@@ -588,18 +589,50 @@ const DIAL_SENSORS = {
         : (lang === "jp" ? "夜間は減少 ↓" : "night draw-down ↓")}</div>`)
   },
 
-  // The probe hasn't been calibrated, so its millivolts are a trend, not a
-  // number to judge: no bands, no swing thresholds, and a neutral pill. Give
-  // it a profile entry and drop `uncalibrated` once it's been calibrated.
+  // The probe hasn't been calibrated, so its millivolts are judged against
+  // this tank's own baseline rather than a target: no ideal / risk bands, no
+  // swing thresholds, a neutral pill. The ring warms below the baseline
+  // (reducing) and cools above it (oxidizing). Measuring from the baseline
+  // keeps all of it honest under an unknown calibration offset.
   orp: {
-    bands: () => null, uncalibrated: true, dp: 0, minSpan: 50, grid: (g) => g, orb: () => "#a78bfa",
+    bands: () => null, uncalibrated: true, dp: 0, minSpan: 60, grid: (g) => g, orb: () => "#a78bfa",
+    under: (c) => {
+      // Stops at the view's edges (and the baseline, if in view), each tinted
+      // by its own distance from the baseline, so the edge of a narrow view
+      // isn't painted full amber or teal.
+      const B = ORP_BASELINE, stop = (v) => {
+        const k = Math.min(1, Math.abs(v - B.mv) / ORP_TINT_MV);
+        const col = v < B.mv ? "#ffb547" : v > B.mv ? "#4deeea" : "#a78bfa";
+        return `<stop offset="${(c.scale(v) / DIAL.r1).toFixed(3)}" stop-color="${col}" stop-opacity="${(0.04 + 0.2 * k).toFixed(3)}"/>`;
+      };
+      const at = B.mv > c.lo && B.mv < c.hi ? [c.lo, B.mv, c.hi] : [c.lo, c.hi];
+      return `<defs><radialGradient id="orp-redox" gradientUnits="userSpaceOnUse" cx="${DIAL.cx}" cy="${DIAL.cy}" r="${DIAL.r1}">` +
+          at.map(stop).join("") +
+        `</radialGradient></defs>` +
+        `<path fill="url(#orp-redox)" fill-rule="evenodd" d="${dialRing(DIAL.r1, DIAL.r0)}"/>` +
+        `<path class="dial-baseline" fill-rule="evenodd" d="${dialRing(c.scale(B.band[1]), c.scale(B.band[0]))}"/>` +
+        `<circle class="dial-baseline-mid" cx="${DIAL.cx}" cy="${DIAL.cy}" r="${c.scale(B.mv).toFixed(1)}"/>`;
+    },
     trace: (d, scale, ang) => `<path class="dial-line-orp" d="${dialLine(d, scale, ang)}"/>`,
     swingFmt: (x) => Math.round(x) + " mV", valFmt: (x) => Math.round(x) + " mV",
-    center: (v, c, lang) => `<div class="dial-val" style="color:#ddd6fe">${Math.round(v)}<small>mV</small></div>` +
-      `<div class="dial-sub">${lang === "jp" ? "酸化還元電位" : "redox potential"}</div>`
+    center: (v, c, lang) => {
+      const dv = Math.round(v - ORP_BASELINE.mv), sign = dv > 0 ? "+" : dv < 0 ? "−" : "±";
+      return `<div class="dial-val" style="color:#ddd6fe">${Math.round(v)}<small>mV</small></div>` +
+        `<div class="dial-sub">${sign}${Math.abs(dv)} mV ${lang === "jp" ? "（基準比）" : "vs baseline"}</div>`;
+    }
   }
 };
 const DIAL_UNCALIBRATED = { color: "#9aa0c0", en: "uncalibrated", jp: "未校正" };
+
+// This tank's ORP baseline, from the probe's first settled afternoon
+// (2026-10-07 14:30-15:45 CT, 352 readings: median 248 mV, 98% within
+// 245-252). The band is a provisional +/-10 mV around it. Provisional until a
+// week of stable data; elysium_pi/scripts/orp_baseline_reminder.py emails the
+// keeper a replacement baseline when there is one. `since` hides the probe's
+// settling-in from the dial.
+const ORP_BASELINE = { mv: 248, band: [238, 258], since: "2026-10-07T19:30:00Z" };
+// How far from the baseline the ring reaches full amber / teal.
+const ORP_TINT_MV = 50;
 
 /* ---- render ---- */
 function renderDial(key) {
@@ -625,7 +658,7 @@ function renderDial(key) {
   const mid = (vals[0] + vals[1]) / 2, span = Math.max((vals[1] - vals[0]) * 1.5, cfg.minSpan);
   const lo = mid - span / 2, hi = mid + span / 2;
   const scale = (v) => DIAL.r0 + (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo) * (DIAL.r1 - DIAL.r0);
-  const ctx = { scale, ang, todArc, ex, live, nowMin, lang };
+  const ctx = { scale, ang, todArc, ex, live, nowMin, lang, lo, hi };
 
   let s = `<svg viewBox="0 0 400 400" aria-hidden="true" focusable="false">`;
   // Light schedule on the rim, matching the day clock
