@@ -108,7 +108,8 @@
     <div class="mother-screen" id="mother-screen">
       <div class="mother-boot">STANDING WATCH. NOTHING TO REPORT YET.<span class="mother-cursor"></span></div>
     </div>
-    <!-- What she is reading, and the viewers' vote on what she reads next.
+    <!-- MO/TH/ER's Midnight Reading Club: what she is reading, her shared
+         margin notes, and the viewers' vote on what she reads next.
          Filled by updateBallot(); stays hidden until the cloud has a ballot. -->
     <div class="mother-reading" id="mother-reading" hidden></div>
   </section>
@@ -1078,14 +1079,16 @@ async function updateMother() {
 }
 
 /* =======================
-   MO/TH/ER READING BALLOT
-   She reads one passage at a time (8-13 days). Three days in, viewers vote on
+   MO/TH/ER'S MIDNIGHT READING CLUB
+   She reads one passage at a time (8-13 days), each day's sitting in four
+   watches, and shares up to three of her margin notes a day. Three days in, viewers vote on
    the next: "Continue the story?" or one of two other works. Voting closes 24h
    before the next passage; a tie is hers to break. The Pi runs the calendar;
    this panel only shows it and casts one vote per browser.
 ======================= */
 const BALLOT_TEXT = {
   en: {
+    club: "MO/TH/ER'S MIDNIGHT READING CLUB", margin: "IN THE MARGIN",
     reading: "NOW READING", day: (d, n) => `DAY ${d} OF ${n}`,
     locked: n => `NEXT READING · VOTING LOCKED FOR ${n} DAY${n === 1 ? "" : "S"}`,
     open: "VOTE ON MY NEXT READING", closesDays: n => `CLOSES IN ${n} DAY${n === 1 ? "" : "S"}`,
@@ -1096,6 +1099,7 @@ const BALLOT_TEXT = {
     cont: "CONTINUE THE STORY?", failed: "VOTE NOT RECORDED. TRY AGAIN.",
   },
   jp: {
+    club: "MO/TH/ERの真夜中の読書会", margin: "余白に",
     reading: "読書中", day: (d, n) => `${n}日中${d}日目`,
     locked: n => `次の読書 · 投票開始まであと${n}日`,
     open: "次の読書に投票", closesDays: n => `締切まであと${n}日`,
@@ -1113,7 +1117,13 @@ function ballotView(b, nowMs, myVote, lang, weekdayFmt) {
   if (!b || !b.now_reading) return null;
   const t = BALLOT_TEXT[lang] || BALLOT_TEXT.en;
   const nr = b.now_reading;
+  // Her shared margin notes, newest first, in her own words (not translated).
+  const notes = (Array.isArray(nr.commentary) ? nr.commentary : [])
+    .filter(c => c && typeof c.text === "string" && c.text.trim())
+    .slice(0, 3)
+    .map(c => ({ time: typeof c.time === "string" ? c.time : "", text: c.text.trim() }));
   const view = {
+    club: t.club, margin: t.margin, commentary: notes,
     reading: `${t.reading} · ${nr.author}, ${nr.work_title}`,
     passage: `${nr.title} · ${t.day(nr.day, nr.days)}`,
     status: b.status, headline: "", note: "", canVote: false, options: [],
@@ -1188,7 +1198,19 @@ function renderBallot(errorText) {
     return n;
   };
   const frag = document.createDocumentFragment();
-  frag.append(el("div", "mr-now", v.reading), el("div", "mr-passage", v.passage), el("div", "mr-head", v.headline));
+  frag.append(el("div", "mr-club", v.club), el("div", "mr-now", v.reading), el("div", "mr-passage", v.passage));
+  if (v.commentary.length) {
+    const margin = el("div", "mr-margin");
+    margin.appendChild(el("div", "mr-margin-label", v.margin));
+    for (const c of v.commentary) {
+      const line = el("div", "mr-comment");
+      if (c.time) line.appendChild(el("span", "mr-comment-time", c.time));
+      line.appendChild(document.createTextNode(c.text));
+      margin.appendChild(line);
+    }
+    frag.appendChild(margin);
+  }
+  frag.appendChild(el("div", "mr-head", v.headline));
   const list = el("div", "mr-options");
   for (const o of v.options) {
     const btn = el("button", "mr-option" + (o.chosen ? " is-chosen" : ""));

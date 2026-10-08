@@ -1014,6 +1014,13 @@ main {
     line-height: 1.45;
 }
 .mother-reading[hidden] { display: none; }
+.mr-club {
+    font-size: 0.66rem;
+    letter-spacing: 0.2em;
+    color: #6dff8f;
+    text-shadow: 0 0 6px rgba(109, 255, 143, 0.35);
+    margin-bottom: 0.3rem;
+}
 .mr-now {
     font-size: 0.6rem;
     letter-spacing: 0.18em;
@@ -1023,6 +1030,34 @@ main {
 .mr-passage {
     margin: 0.15rem 0 0.55rem;
     color: #a8ffbe;
+}
+/* Her margin notes: sentence case, her voice, not a status line. Scrolls
+   rather than letting three long notes push the footer up the log. */
+.mr-margin {
+    margin: -0.2rem 0 0.6rem;
+    padding-left: 0.6rem;
+    border-left: 1px solid rgba(109, 255, 143, 0.3);
+    max-height: 9.5rem;
+    overflow-y: auto;
+}
+.mr-margin-label {
+    font-size: 0.56rem;
+    letter-spacing: 0.18em;
+    color: rgba(139, 255, 168, 0.6);
+    margin-bottom: 0.2rem;
+}
+.mr-comment {
+    font-size: 0.7rem;
+    line-height: 1.5;
+    color: #c4ffd2;
+    overflow-wrap: anywhere;
+}
+.mr-comment + .mr-comment { margin-top: 0.35rem; }
+.mr-comment-time {
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    color: rgba(139, 255, 168, 0.6);
+    margin-right: 0.5rem;
 }
 .mr-head {
     font-size: 0.6rem;
