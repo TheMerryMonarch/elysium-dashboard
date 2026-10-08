@@ -292,18 +292,22 @@ main {
     display: grid;
     grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
     gap: 22px;
-    align-items: stretch;
+    align-items: start;
 }
 
+/* The dials run 2x2 and end up much taller than the clock + specs, so the
+   left column rides along while they scroll past. */
 .compact-left {
     display: flex;
     flex-direction: column;
     gap: 20px;
+    position: sticky;
+    top: 16px;
 }
 
 .compact-right {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 20px;
 }
 
@@ -406,7 +410,8 @@ main {
 .dial {
     position: relative;
     width: 100%;
-    max-width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
     aspect-ratio: 1 / 1;
     container-type: inline-size;
 }
@@ -502,15 +507,13 @@ main {
    RESPONSIVE
    ============== */
 
-@media (max-width: 1250px) {
-    .compact-right {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
 @media (max-width: 900px) {
     .compact-row {
         grid-template-columns: 1fr;
+    }
+
+    .compact-left {
+        position: static;
     }
 
     .compact-right {
