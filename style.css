@@ -1280,3 +1280,15 @@ main {
     background: rgba(109, 255, 143, 0.45);
 }
 
+
+/* ==============
+   SITE NOTE (privacy line)
+   ============== */
+
+.site-note {
+    padding: 1.2rem 1.8rem 1.6rem;
+    text-align: center;
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+    color: rgba(249, 234, 255, 0.45);
+}
