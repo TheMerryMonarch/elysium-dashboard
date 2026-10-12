@@ -889,7 +889,8 @@ main {
     line-height: 1.75;
     padding: 0.9rem 1.1rem 1rem;
     flex: 1;
-    min-height: 0;
+    /* Room for a couple of log lines even when the reading footer is tall. */
+    min-height: 5rem;
     overflow-y: auto;
     text-shadow: 0 0 5px rgba(109, 255, 143, 0.32);
     background-image: repeating-linear-gradient(
@@ -1001,10 +1002,14 @@ main {
     letter-spacing: 0.1em;
 }
 
-/* What she is reading, and the viewers' ballot. A fixed footer under the
-   scrolling log: same phosphor, quieter, never taller than it needs to be. */
+/* What she is reading, and the viewers' ballot. A footer under the
+   scrolling log: same phosphor, quieter, never taller than it needs to be.
+   The panel is capped to the video's height and clips, so this shrinks and
+   scrolls rather than pushing the vote buttons out of sight. */
 .mother-reading {
-    flex: none;
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow-y: auto;
     font-family: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
     padding: 0.7rem 1.1rem 0.85rem;
     border-top: 1px solid rgba(109, 255, 143, 0.25);
@@ -1040,6 +1045,8 @@ main {
     max-height: 9.5rem;
     overflow-y: auto;
 }
+/* Below the ballot while voting is open. */
+.mr-margin.mr-margin-after { margin: 0.7rem 0 0; }
 .mr-margin-label {
     font-size: 0.56rem;
     letter-spacing: 0.18em;
@@ -1117,6 +1124,8 @@ main {
     }
     .mother-panel {
         margin-top: 0.9rem;
+        /* Stacked under the video: flow with the page instead of clipping. */
+        max-height: none;
     }
     .mother-head-text {
         flex-direction: row;

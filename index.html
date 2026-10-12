@@ -1199,8 +1199,12 @@ function renderBallot(errorText) {
   };
   const frag = document.createDocumentFragment();
   frag.append(el("div", "mr-club", v.club), el("div", "mr-now", v.reading), el("div", "mr-passage", v.passage));
+  // While voting is open the buttons go above her notes, so a short panel
+  // scrolls the notes away rather than the vote.
+  const voteFirst = v.status === "open";
+  let margin = null;
   if (v.commentary.length) {
-    const margin = el("div", "mr-margin");
+    margin = el("div", "mr-margin" + (voteFirst ? " mr-margin-after" : ""));
     margin.appendChild(el("div", "mr-margin-label", v.margin));
     for (const c of v.commentary) {
       const line = el("div", "mr-comment");
@@ -1208,7 +1212,7 @@ function renderBallot(errorText) {
       line.appendChild(document.createTextNode(c.text));
       margin.appendChild(line);
     }
-    frag.appendChild(margin);
+    if (!voteFirst) frag.appendChild(margin);
   }
   frag.appendChild(el("div", "mr-head", v.headline));
   const list = el("div", "mr-options");
@@ -1224,6 +1228,7 @@ function renderBallot(errorText) {
   if (v.note) frag.appendChild(el("div", "mr-note", v.note));
   if (v.reason) frag.appendChild(el("div", "mr-reason", v.reason));
   if (errorText) frag.appendChild(el("div", "mr-error", errorText));
+  if (margin && voteFirst) frag.appendChild(margin);
   box.replaceChildren(frag);
   box.hidden = false;
 }
