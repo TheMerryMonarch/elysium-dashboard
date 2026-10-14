@@ -889,7 +889,9 @@ main {
     line-height: 1.75;
     padding: 0.9rem 1.1rem 1rem;
     flex: 1;
-    min-height: 0;
+    /* Her log always keeps a few lines; past that the reading club footer
+       gives way and scrolls instead of pushing her off the screen. */
+    min-height: 9rem;
     overflow-y: auto;
     text-shadow: 0 0 5px rgba(109, 255, 143, 0.32);
     background-image: repeating-linear-gradient(
@@ -1004,7 +1006,10 @@ main {
 /* What she is reading, and the viewers' ballot. A fixed footer under the
    scrolling log: same phosphor, quieter, never taller than it needs to be. */
 .mother-reading {
-    flex: none;
+    flex: 0 1 auto;
+    min-height: 0;
+    max-height: calc(var(--mother-h, 70vh) * 0.45);
+    overflow-y: auto;
     font-family: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
     padding: 0.7rem 1.1rem 0.85rem;
     border-top: 1px solid rgba(109, 255, 143, 0.25);
@@ -1014,13 +1019,49 @@ main {
     line-height: 1.45;
 }
 .mother-reading[hidden] { display: none; }
+.mother-reading.is-collapsed { padding-bottom: 0.7rem; }
+/* The club title is also the minimize toggle. */
 .mr-club {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0;
+    margin-bottom: 0.3rem;
+    border: 0;
+    background: none;
+    font: inherit;
     font-size: 0.66rem;
     letter-spacing: 0.2em;
+    text-align: left;
     color: #6dff8f;
     text-shadow: 0 0 6px rgba(109, 255, 143, 0.35);
-    margin-bottom: 0.3rem;
+    cursor: pointer;
 }
+.mother-reading.is-collapsed .mr-club { margin-bottom: 0; }
+.mr-club:focus-visible { outline: 1px solid #6dff8f; outline-offset: 3px; border-radius: 3px; }
+.mr-club-name { flex: 1; min-width: 0; }
+.mr-club-tag {
+    flex: none;
+    font-size: 0.56rem;
+    letter-spacing: 0.16em;
+    padding: 0.1rem 0.45rem;
+    border: 1px solid rgba(109, 255, 143, 0.45);
+    border-radius: 999px;
+}
+.mr-club-chev {
+    flex: none;
+    width: 0.45rem;
+    height: 0.45rem;
+    margin-right: 0.15rem;
+    border-right: 1px solid currentColor;
+    border-bottom: 1px solid currentColor;
+    transform: translateY(-0.12rem) rotate(45deg);   /* points down: fold it away */
+    opacity: 0.8;
+    transition: transform 0.15s;
+}
+.mother-reading.is-collapsed .mr-club-chev { transform: translateY(0.12rem) rotate(-135deg); }
+.mr-club:hover .mr-club-chev { opacity: 1; }
 .mr-now {
     font-size: 0.6rem;
     letter-spacing: 0.18em;
