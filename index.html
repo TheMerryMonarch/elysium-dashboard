@@ -632,13 +632,15 @@ const DIAL_SENSORS = {
 };
 const DIAL_UNCALIBRATED = { color: "#9aa0c0", en: "uncalibrated", jp: "未校正" };
 
-// This tank's ORP baseline, from the probe's first settled afternoon
-// (2026-10-07 14:30-15:45 CT, 352 readings: median 248 mV, 98% within
-// 245-252). The band is a provisional +/-10 mV around it. Provisional until a
-// week of stable data; elysium_pi/scripts/orp_baseline_reminder.py emails the
-// keeper a replacement baseline when there is one. `since` hides the probe's
-// settling-in from the dial.
-const ORP_BASELINE = { mv: 248, band: [238, 258], since: "2026-10-07T19:30:00Z" };
+// This tank's ORP baseline since the probe was calibrated (2026-10-14
+// 10:46-10:52 CT). ORP swings ~35-40 mV a day (peak ~10:00, trough ~19:00
+// CT); before calibration the daily median was ~199 mV, 5th-95th percentile
+// 172-208. Calibration netted out to about -6 mV once the probe recovered, so
+// the median and band are that cycle shifted by -6. Provisional until a week
+// of stable data; elysium_pi/scripts/orp_baseline_reminder.py emails the
+// keeper a replacement baseline when there is one. `since` hides the
+// calibration and the probe's recovery from it from the dial.
+const ORP_BASELINE = { mv: 193, band: [166, 203], since: "2026-10-14T18:30:00Z" };
 // How far from the baseline the ring reaches full amber / teal.
 const ORP_TINT_MV = 50;
 
