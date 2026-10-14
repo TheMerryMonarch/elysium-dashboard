@@ -233,7 +233,7 @@
         <div id="orp-last-updated" class="sensor-subtext">Last updated —</div>
         <div class="dial-wrap"><div class="dial" id="orp-dial"></div></div>
         <div class="swing-meter" id="orp-swing" role="img"></div>
-        <div class="dial-legend"><span><b class="lg-baseline"></b><em data-en="baseline" data-jp="基準">baseline</em></span><span><b class="lg-redox"></b><em data-en="reducing → oxidizing" data-jp="還元 → 酸化">reducing → oxidizing</em></span></div>
+        <div class="dial-legend"><span><b class="lg-ideal"></b><em data-en="ideal" data-jp="適正">ideal</em></span><span><b class="lg-risk"></b><em data-en="risk" data-jp="危険">risk</em></span></div>
       </section>
     </div>
   </div>
@@ -595,32 +595,12 @@ const DIAL_SENSORS = {
         : (lang === "jp" ? "夜間は減少 ↓" : "night draw-down ↓")}</div>`)
   },
 
-  // The probe hasn't been calibrated, so its millivolts are judged against
-  // this tank's own baseline rather than a target: no ideal / risk bands, a
-  // neutral pill, and a swing meter scaled to the baseline band's width. The
-  // ring warms below the baseline (reducing) and cools above it (oxidizing).
-  // Measuring from the baseline keeps all of it honest under an unknown
-  // calibration offset.
+  // ORP is judged against this tank's own normal rather than a species target
+  // (see ORP_BASELINE): ideal is the baseline band, so the ranges move when the
+  // baseline is re-taken. The centre also says how far it sits from the median.
   orp: {
-    bands: () => null, uncalibrated: true, dp: 0, minSpan: 60, grid: (g) => g, orb: () => "#a78bfa",
-    baseline: () => ORP_BASELINE,
-    under: (c) => {
-      // Stops at the view's edges (and the baseline, if in view), each tinted
-      // by its own distance from the baseline, so the edge of a narrow view
-      // isn't painted full amber or teal.
-      const B = ORP_BASELINE, stop = (v) => {
-        const k = Math.min(1, Math.abs(v - B.mv) / ORP_TINT_MV);
-        const col = v < B.mv ? "#ffb547" : v > B.mv ? "#4deeea" : "#a78bfa";
-        return `<stop offset="${(c.scale(v) / DIAL.r1).toFixed(3)}" stop-color="${col}" stop-opacity="${(0.04 + 0.2 * k).toFixed(3)}"/>`;
-      };
-      const at = B.mv > c.lo && B.mv < c.hi ? [c.lo, B.mv, c.hi] : [c.lo, c.hi];
-      return `<defs><radialGradient id="orp-redox" gradientUnits="userSpaceOnUse" cx="${DIAL.cx}" cy="${DIAL.cy}" r="${DIAL.r1}">` +
-          at.map(stop).join("") +
-        `</radialGradient></defs>` +
-        `<path fill="url(#orp-redox)" fill-rule="evenodd" d="${dialRing(DIAL.r1, DIAL.r0)}"/>` +
-        `<path class="dial-baseline" fill-rule="evenodd" d="${dialRing(c.scale(B.band[1]), c.scale(B.band[0]))}"/>` +
-        `<circle class="dial-baseline-mid" cx="${DIAL.cx}" cy="${DIAL.cy}" r="${c.scale(B.mv).toFixed(1)}"/>`;
-    },
+    bands: () => ORP_BANDS, targets: { en: "this tank's", jp: "この水槽の" },
+    dp: 0, minSpan: 60, grid: (g) => g, orb: () => "#a78bfa",
     trace: (d, scale, ang) => `<path class="dial-line-orp" d="${dialLine(d, scale, ang)}"/>`,
     swingFmt: (x) => Math.round(x) + " mV", valFmt: (x) => Math.round(x) + " mV",
     center: (v, c, lang) => {
@@ -630,7 +610,6 @@ const DIAL_SENSORS = {
     }
   }
 };
-const DIAL_UNCALIBRATED = { color: "#9aa0c0", en: "uncalibrated", jp: "未校正" };
 
 // This tank's ORP baseline since the probe was calibrated (2026-10-14
 // 10:46-10:52 CT). ORP swings ~35-40 mV a day (peak ~10:00, trough ~19:00
@@ -641,8 +620,10 @@ const DIAL_UNCALIBRATED = { color: "#9aa0c0", en: "uncalibrated", jp: "未校正
 // keeper a replacement baseline when there is one. `since` hides the
 // calibration and the probe's recovery from it from the dial.
 const ORP_BASELINE = { mv: 193, band: [166, 203], since: "2026-10-14T18:30:00Z" };
-// How far from the baseline the ring reaches full amber / teal.
-const ORP_TINT_MV = 50;
+// The dial's ranges (keeper's choice, 2026-10-14): ideal is the baseline band,
+// risk is a reading past 120 or 250 mV, and a 24h swing past 45 / 65 mV is
+// watch / risk (a normal day swings ~35-40).
+const ORP_BANDS = { ideal: ORP_BASELINE.band, limit: [120, 250], swing: { watch: 45, risk: 65 } };
 
 /* ---- render ---- */
 function renderDial(key) {
@@ -720,17 +701,13 @@ function renderDial(key) {
 }
 
 // The 24h swing (high minus low) as a small arc gauge under each dial, with
-// its track tinted by the profile's watch and risk thresholds. A sensor judged
-// against its own baseline (cfg.baseline) gets two zones instead, inside and
-// past the width of its baseline band, and a fill that never turns red.
+// its track tinted by the profile's watch and risk thresholds.
 function renderSwingMeter(key, ex) {
   const el = document.getElementById(`${key}-swing`);
   if (!el) return;
-  const cfg = DIAL_SENSORS[key], sw = cfg.bands()?.swing, base = cfg.baseline?.(), lang = dialLang();
-  if (!sw && !base) { el.innerHTML = ""; return; }
-  if (!ex && !base) { el.innerHTML = ""; return; }
-  const width = base ? base.band[1] - base.band[0] : null;
-  const max = base ? width * 2 : sw.risk * 1.5, A = Math.PI / 3, cx = 120, cy = 112, r = 92;
+  const cfg = DIAL_SENSORS[key], sw = cfg.bands()?.swing, lang = dialLang();
+  if (!sw || !ex) { el.innerHTML = ""; return; }
+  const max = sw.risk * 1.5, A = Math.PI / 3, cx = 120, cy = 112, r = 92;
   const at = (v) => -A + Math.max(0, Math.min(1, v / max)) * 2 * A;
   const pt = (rad, a) => `${(cx + rad * Math.sin(a)).toFixed(1)},${(cy - rad * Math.cos(a)).toFixed(1)}`;
   const arc = (a0, a1) => `M${pt(r, a0)}A${r},${r} 0 0 1 ${pt(r, a1)}`;
@@ -741,35 +718,14 @@ function renderSwingMeter(key, ex) {
   const label = first != null && Date.now() - first < DAY_MS - 3600000
     ? (lang === "jp" ? `${dialClock(first)}以降の変動` : `swing since ${dialClock(first)}`)
     : (lang === "jp" ? "24時間の変動" : "24h swing");
-  const zones = base
-    ? `<path class="swing-zone swing-zone-base" d="${arc(-A, at(width))}"/>` +
-      `<path class="swing-zone swing-zone-watch" d="${arc(at(width), A)}"/>`
-    : `<path class="swing-zone swing-zone-ideal" d="${arc(-A, at(sw.watch))}"/>` +
-      `<path class="swing-zone swing-zone-watch" d="${arc(at(sw.watch), at(sw.risk))}"/>` +
-      `<path class="swing-zone swing-zone-risk" d="${arc(at(sw.risk), A)}"/>`;
-  const notches = base ? notch(width) : notch(sw.watch) + notch(sw.risk);
+  const zones = `<path class="swing-zone swing-zone-ideal" d="${arc(-A, at(sw.watch))}"/>` +
+    `<path class="swing-zone swing-zone-watch" d="${arc(at(sw.watch), at(sw.risk))}"/>` +
+    `<path class="swing-zone swing-zone-risk" d="${arc(at(sw.risk), A)}"/>`;
+  const notches = notch(sw.watch) + notch(sw.risk);
 
-  if (!ex) {
-    const msg = lang === "jp" ? "収集中" : "collecting";
-    el.innerHTML = `<svg viewBox="0 0 240 92" aria-hidden="true" focusable="false">${zones}${notches}` +
-      `<text class="swing-value swing-value-empty" x="${cx}" y="66" text-anchor="middle">--</text>` +
-      `<text class="swing-label" x="${cx}" y="84" text-anchor="middle">${msg}</text></svg>`;
-    el.setAttribute("aria-label", `${label}: ${msg}`);
-    return;
-  }
 
-  // A baseline sensor's low and high take the dial's tint when they sit outside the band,
-  // so a reading parked below it doesn't look calm just because it hasn't moved.
-  const tint = (v) => !base ? null : v < base.band[0] ? "#ffb547" : v > base.band[1] ? "#4deeea" : null;
-  const t = (p) => {
-    const v = tint(p[1]) ? `<span style="color:${tint(p[1])}">${cfg.valFmt(p[1])}</span>` : cfg.valFmt(p[1]);
-    return lang === "jp" ? `${v}（${dialClock(p[0])}）` : `${v} at ${dialClock(p[0])}`;
-  };
-  const st = base
-    ? (ex.swing <= width ? { color: "#a78bfa", en: "within the baseline band", jp: "基準幅内" }
-                         : { color: "#a78bfa", en: "wider than the baseline band", jp: "基準幅を超える" })
-    : DIAL_STATUS[swingStatus(ex.swing, sw)];
-  const col = st.color;
+  const t = (p) => lang === "jp" ? `${cfg.valFmt(p[1])}（${dialClock(p[0])}）` : `${cfg.valFmt(p[1])} at ${dialClock(p[0])}`;
+  const st = DIAL_STATUS[swingStatus(ex.swing, sw)], col = st.color;
   el.innerHTML =
     `<svg viewBox="0 0 240 92" aria-hidden="true" focusable="false">` + zones +
       `<path class="swing-fill" d="${arc(-A, Math.max(-A + 0.001, at(ex.swing)))}" stroke="${col}" style="filter:drop-shadow(0 0 5px ${col})"/>` +
@@ -802,7 +758,7 @@ function dialsSetLive() {
     if (pill) {
       pill.hidden = live == null;
       if (live != null) {
-        const st = cfg.uncalibrated ? DIAL_UNCALIBRATED : DIAL_STATUS[levelStatus(live, cfg.bands(), cfg.dp)];
+        const st = DIAL_STATUS[levelStatus(live, cfg.bands(), cfg.dp)];
         pill.style.color = st.color;
         pill.innerHTML = `<i></i>${st[lang]}`;
       }
@@ -831,7 +787,7 @@ function dialsSetLive() {
     const lu = document.getElementById(`${key}-last-updated`);
     if (lu) {
       const sec = dialLatest.timestamp ? secondsAgo(dialLatest.timestamp) : null;
-      const sp = cfg.bands() ? PROFILE[lang] : null;
+      const sp = cfg.targets?.[lang] ?? (cfg.bands() ? PROFILE[lang] : null);
       lu.textContent = lang === "jp"
         ? `${sec == null ? "—" : sec + "秒前に更新"}${sp ? ` · ${sp}基準` : ""}`
         : `${sec == null ? "Last updated —" : `Last updated ${sec}s ago`}${sp ? ` · ${sp} targets` : ""}`;
