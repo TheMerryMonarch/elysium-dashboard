@@ -4,10 +4,25 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Project Elysium</title>
+  <meta name="description" content="A live, sensor-instrumented shrimp tank with an AI caretaker, MO/TH/ER, who narrates it day and night. Live video, live water chemistry, and a reading club you vote on." />
+  <link rel="canonical" href="https://elysiumshrimptank.com/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://elysiumshrimptank.com/" />
+  <meta property="og:title" content="Elysium — a live shrimp tank with an AI caretaker" />
+  <meta property="og:description" content="Live video, live water chemistry, and MO/TH/ER's running commentary on a planted Neocaridina tank." />
+  <meta property="og:image" content="https://elysiumshrimptank.com/og.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
 
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
   <script src="soundscape.js" defer></script>
+  <!-- Analytics: Umami Cloud (cookieless) + Elysium's own events. -->
+  <script defer src="https://cloud.umami.is/script.js"
+          data-website-id="2757bc8b-2697-483e-8e2b-94bebbe94d93"
+          data-domains="elysiumshrimptank.com"></script>
+  <script defer src="analytics.js"></script>
 </head>
 
 <body>
@@ -244,6 +259,10 @@
     <div class="biota-grid" id="biota-grid"></div>
   </section>
 </main>
+
+<footer class="site-note">
+  <span data-en="Anonymous, cookie-free visit counts via Umami." data-jp="訪問数はCookieを使わず匿名で計測しています（Umami）。">Anonymous, cookie-free visit counts via Umami.</span>
+</footer>
 
 <script>
 /* =======================
@@ -1221,6 +1240,7 @@ async function castVote(optionId) {
     const data = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(data.detail || `HTTP ${r.status}`);
     ballotStore(`mother_vote_${b.id}`, data.already || optionId);
+    if (window.umami) window.umami.track("ballot_vote");
     renderBallot();
   } catch (err) {
     console.error("vote failed:", err);
