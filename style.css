@@ -287,7 +287,7 @@ main {
 }
 
 .compact-row {
-    max-width: 1560px;   /* matches the stream + MO/TH/ER row above */
+    max-width: 1560px;   /* matches the stream + MUSASHI row above */
     margin: 1.8rem auto 0;
     display: grid;
     grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
@@ -723,7 +723,7 @@ main {
    ============== */
 
 .biota {
-    max-width: 1560px;   /* matches the stream + MO/TH/ER row above */
+    max-width: 1560px;   /* matches the stream + MUSASHI row above */
     margin: 3rem auto 0;
 }
 
@@ -805,11 +805,11 @@ main {
 
 
 /* ==============
-   MO/TH/ER PANEL
+   MUSASHI PANEL
    ============== */
 
-/* Stream + MO/TH/ER share one row on wide screens; the video keeps its full
-   1100px and MO/TH/ER fills the remaining column at matching height. */
+/* Stream + MUSASHI share one row on wide screens; the video keeps its full
+   1100px and MUSASHI fills the remaining column at matching height. */
 .stream-row {
     max-width: 1560px;
     margin: 0 auto 2.4rem;
@@ -911,7 +911,7 @@ main {
     50% { opacity: 0; }
 }
 
-/* MO/TH/ER reads as a chat log: her sigil in the gutter, the timestamp out in
+/* MUSASHI reads as a chat log: her sigil in the gutter, the timestamp out in
    the margin, and each utterance in its own demarcated block. The renderer
    strips the clock she prefixes to her own prose, so the time is stated once
    rather than twice. */
@@ -1291,7 +1291,7 @@ main {
     .stream-sleep .sleep-zs span { opacity: 0.45; }
 }
 
-/* MO/TH/ER terminal scrollbar — visible enough to signal there is history
+/* MUSASHI terminal scrollbar — visible enough to signal there is history
    above, quiet enough not to fight the phosphor. */
 .mother-screen {
     scrollbar-width: thin;
