@@ -444,11 +444,12 @@ const TANK_SPECIES = "neocaridina";
 // ideal: where they thrive. limit: past this it's a risk. swing: 24h high
 // minus low, with watch / risk thresholds. DO has no upper limit worth
 // flagging, so its top values sit out of reach; its swing is in percentage
-// points, and a big one means a deep overnight low.
+// points, and a big one means a deep overnight low. Neocaridina temp is the
+// keeper's own range (2026-10-26): 70-75 °F, and anything outside it is a risk.
 const SPECIES_PROFILES = {
   neocaridina: {
     en: "Neocaridina", jp: "ネオカリディナ",
-    temp: { ideal: [68, 76],   limit: [64, 80],   swing: { watch: 3,   risk: 5 } },
+    temp: { ideal: [70, 75],   limit: [70, 75],   swing: { watch: 3,   risk: 5 } },
     ph:   { ideal: [6.8, 7.8], limit: [6.2, 8.2], swing: { watch: 0.8, risk: 1.2 } },
     do:   { ideal: [60, 999],  limit: [45, 999], swing: { watch: 40,  risk: 60 } }
   },
