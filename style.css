@@ -1075,6 +1075,7 @@ main {
     max-height: 9.5rem;
     overflow-y: auto;
 }
+.mr-margin.mr-margin-after { margin: 0.7rem 0 0; }
 .mr-margin-label {
     font-size: 0.56rem;
     letter-spacing: 0.18em;
