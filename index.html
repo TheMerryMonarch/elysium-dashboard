@@ -214,7 +214,7 @@
         <div id="temp-last-updated" class="sensor-subtext">Last updated —</div>
         <div class="dial-wrap"><div class="dial" id="temp-dial"></div></div>
         <div class="dial-stats" id="temp-swing" role="img"></div>
-        <div class="dial-legend"><span><b class="lg-bar" style="color:#7fffd0"></b><em data-en="ideal" data-jp="適正">ideal</em></span><span><b class="lg-bar lg-watch"></b><em data-en="watch" data-jp="注意">watch</em></span><span><b class="lg-bar lg-risk"></b><em data-en="risk" data-jp="危険">risk</em></span><span><b class="lg-avg"></b><em data-en="24h avg" data-jp="24時間平均">24h avg</em><i class="lg-num" id="temp-avg"></i></span></div>
+        <div class="dial-legend"><span><b class="lg-bar" style="color:#e6d8ff"></b><em data-en="15-min average" data-jp="15分平均">15-min average</em></span><span><b class="lg-avg"></b><em data-en="24h avg" data-jp="24時間平均">24h avg</em><i class="lg-num" id="temp-avg"></i></span></div>
       </section>
 
       <section class="sensor-panel dial-panel">
@@ -225,7 +225,7 @@
         <div id="ph-last-updated" class="sensor-subtext">Last updated —</div>
         <div class="dial-wrap"><div class="dial" id="ph-dial"></div></div>
         <div class="dial-stats" id="ph-swing" role="img"></div>
-        <div class="dial-legend"><span><b class="lg-bar" style="color:#ff6ac1"></b><em data-en="ideal" data-jp="適正">ideal</em></span><span><b class="lg-bar lg-watch"></b><em data-en="watch" data-jp="注意">watch</em></span><span><b class="lg-bar lg-risk"></b><em data-en="risk" data-jp="危険">risk</em></span><span><b class="lg-avg"></b><em data-en="24h avg" data-jp="24時間平均">24h avg</em><i class="lg-num" id="ph-avg"></i></span><span><b class="lg-co2"></b><em data-en="CO₂ on" data-jp="CO₂ 注入">CO₂ on</em></span></div>
+        <div class="dial-legend"><span><b class="lg-bar" style="color:#ff6ac1"></b><em data-en="15-min average" data-jp="15分平均">15-min average</em></span><span><b class="lg-avg"></b><em data-en="24h avg" data-jp="24時間平均">24h avg</em><i class="lg-num" id="ph-avg"></i></span><span><b class="lg-co2"></b><em data-en="CO₂ on" data-jp="CO₂ 注入">CO₂ on</em></span></div>
       </section>
 
       <section class="sensor-panel dial-panel">
@@ -236,7 +236,7 @@
         <div id="do-last-updated" class="sensor-subtext">Last updated —</div>
         <div class="dial-wrap"><div class="dial" id="do-dial"></div></div>
         <div class="dial-stats" id="do-swing" role="img"></div>
-        <div class="dial-legend"><span><b class="lg-bar" style="color:#60a5fa"></b><em data-en="ideal" data-jp="適正">ideal</em></span><span><b class="lg-bar lg-watch"></b><em data-en="watch" data-jp="注意">watch</em></span><span><b class="lg-bar lg-risk"></b><em data-en="risk" data-jp="危険">risk</em></span><span><b class="lg-avg"></b><em data-en="24h avg" data-jp="24時間平均">24h avg</em><i class="lg-num" id="do-avg"></i></span></div>
+        <div class="dial-legend"><span><b class="lg-bar" style="color:#60a5fa"></b><em data-en="15-min average" data-jp="15分平均">15-min average</em></span><span><b class="lg-avg"></b><em data-en="24h avg" data-jp="24時間平均">24h avg</em><i class="lg-num" id="do-avg"></i></span></div>
       </section>
 
       <section class="sensor-panel dial-panel">
@@ -247,7 +247,7 @@
         <div id="orp-last-updated" class="sensor-subtext">Last updated —</div>
         <div class="dial-wrap"><div class="dial" id="orp-dial"></div></div>
         <div class="dial-stats" id="orp-swing" role="img"></div>
-        <div class="dial-legend"><span><b class="lg-bar" style="color:#a78bfa"></b><em data-en="ideal" data-jp="適正">ideal</em></span><span><b class="lg-bar lg-watch"></b><em data-en="watch" data-jp="注意">watch</em></span><span><b class="lg-bar lg-risk"></b><em data-en="risk" data-jp="危険">risk</em></span><span><b class="lg-avg"></b><em data-en="24h avg" data-jp="24時間平均">24h avg</em><i class="lg-num" id="orp-avg"></i></span></div>
+        <div class="dial-legend"><span><b class="lg-bar" style="color:#a78bfa"></b><em data-en="15-min average" data-jp="15分平均">15-min average</em></span><span><b class="lg-avg"></b><em data-en="24h avg" data-jp="24時間平均">24h avg</em><i class="lg-num" id="orp-avg"></i></span></div>
       </section>
     </div>
   </div>
@@ -434,7 +434,8 @@ async function fetchHistory() {
    Each sensor's last 24h wraps around a dial that turns like the day clock:
    NOW at the top, the past running back anticlockwise, the light schedule
    on the rim. One bar per 15 minutes reaches out from the 24h average for a
-   higher reading, in for a lower one, coloured by the species profile below.
+   higher reading, in for a lower one. The centre reading shades towards red
+   as it strays outside the species profile's ideal band (below).
 ======================= */
 
 // Which shrimp the bands are judged against. Deliberately not exposed on the
@@ -546,26 +547,21 @@ function dialBars(data, minutes = 15) {
   }
   return [...bins.entries()].sort((a, b) => a[0] - b[0]).map(([, b]) => [b.t / b.n, b.v / b.n]);
 }
-const heatColor = (v) => {
-  const k = Math.max(0, Math.min(1, (v - 69.5) / 3)), stops = [[77, 238, 234], [255, 216, 107], [255, 106, 193]];
-  const [a, b, kk] = k < 0.5 ? [stops[0], stops[1], k * 2] : [stops[1], stops[2], (k - 0.5) * 2];
-  return `rgb(${a.map((c, i) => Math.round(c + (b[i] - c) * kk)).join(",")})`;
-};
 const lightsOn = (m) => m >= SCHEDULE.morning && m < SCHEDULE.out;
 
 /* ---- per-sensor pieces ---- */
-// tint: an ideal bar's colour. Temperature's heat colours run through gold,
-// which would read as "watch" on a bar, so its bars stay aqua.
+// tint: the bars' colour, whatever the reading. valColor: the centre reading's
+// colour while it's in the ideal band (see dialValColor for outside it).
 const DIAL_SENSORS = {
   temp: {
-    bands: () => PROFILE.temp, dp: 1, minSpan: 3, tint: "#7fffd0",
+    bands: () => PROFILE.temp, dp: 1, minSpan: 3, tint: "#e6d8ff", valColor: () => "#f4eeff",
     swingFmt: (x) => x.toFixed(1) + "°", valFmt: (x) => x.toFixed(1) + "°",
-    center: (v) => `<div class="dial-val" style="color:${heatColor(v)}">${v.toFixed(1)}<small>°F</small></div>` +
+    center: (v, c) => `<div class="dial-val" style="color:${c.valCol}">${v.toFixed(1)}<small>°F</small></div>` +
       `<div class="dial-sub">${((v - 32) * 5 / 9).toFixed(1)} °C</div>`
   },
 
   ph: {
-    bands: () => PROFILE.ph, dp: 2, minSpan: 1.0, tint: "#ff6ac1",
+    bands: () => PROFILE.ph, dp: 2, minSpan: 1.0, tint: "#ff6ac1", valColor: () => "#ffbdf2",
     // The CO2 window sits just inside the bars, so the dip lines up with it.
     under: (c) => `<circle cx="${DIAL.cx}" cy="${DIAL.cy}" r="70" class="dial-co2-track"/>` +
       `<path class="dial-co2" d="${c.todArc(70, SCHEDULE.co2On, SCHEDULE.co2Off)}"/>`,
@@ -574,18 +570,18 @@ const DIAL_SENSORS = {
       const word = lang === "jp"
         ? (v < 6.5 ? "酸性" : v < 7 ? "弱酸性" : v < 7.5 ? "中性" : "アルカリ性")
         : (v < 6.5 ? "acidic" : v < 7 ? "slightly acidic" : v < 7.5 ? "neutral" : "alkaline");
-      return `<div class="dial-val" style="color:#ffbdf2">${v.toFixed(2)}</div><div class="dial-sub">${word}</div>`;
+      return `<div class="dial-val" style="color:${c.valCol}">${v.toFixed(2)}</div><div class="dial-sub">${word}</div>`;
     }
   },
 
   do: {
-    bands: () => PROFILE.do, dp: 1, minSpan: 50, tint: "#60a5fa",
+    bands: () => PROFILE.do, dp: 1, minSpan: 50, tint: "#60a5fa", valColor: () => "#bfdbfe",
     swingFmt: (x) => Math.round(x) + "%", valFmt: (x) => x.toFixed(1) + "%",
     // A water line in the hub at the current saturation (moved by dialsSetLive).
     under: () => `<defs><clipPath id="do-hub"><circle cx="${DIAL.cx}" cy="${DIAL.cy}" r="72"/></clipPath></defs>` +
       `<circle cx="${DIAL.cx}" cy="${DIAL.cy}" r="72" class="dial-hub"/>` +
       `<g clip-path="url(#do-hub)"><path class="dial-wave dial-wave-back" data-wave="-3"/><path class="dial-wave" data-wave="0"/></g>`,
-    center: (v, c, lang) => `<div class="dial-val" style="color:#bfdbfe">${v.toFixed(1)}<small>%</small></div>` +
+    center: (v, c, lang) => `<div class="dial-val" style="color:${c.valCol}">${v.toFixed(1)}<small>%</small></div>` +
       (c.scrubbing ? "" : `<div class="dial-hint">${lightsOn(c.nowMin)
         ? (lang === "jp" ? "植物が酸素を放出中 ↑" : "plants exhaling ↑")
         : (lang === "jp" ? "夜間は減少 ↓" : "night draw-down ↓")}</div>`)
@@ -596,20 +592,38 @@ const DIAL_SENSORS = {
   // baseline is re-taken. The centre also says how far it sits from the median.
   orp: {
     bands: () => ORP_BANDS, targets: { en: "this tank's", jp: "この水槽の" },
-    dp: 0, minSpan: 60, tint: "#a78bfa",
+    dp: 0, minSpan: 60, tint: "#a78bfa", valColor: () => "#ddd6fe",
     swingFmt: (x) => Math.round(x) + " mV", valFmt: (x) => Math.round(x) + " mV",
     center: (v, c, lang) => {
       const dv = Math.round(v - ORP_BASELINE.mv), sign = dv > 0 ? "+" : dv < 0 ? "−" : "±";
-      return `<div class="dial-val" style="color:#ddd6fe">${Math.round(v)}<small>mV</small></div>` +
+      return `<div class="dial-val" style="color:${c.valCol}">${Math.round(v)}<small>mV</small></div>` +
         `<div class="dial-sub">${sign}${Math.abs(dv)} mV ${lang === "jp" ? "（基準比）" : "vs baseline"}</div>`;
     }
   }
 };
-// A bar wears the sensor's tint while ideal, gold for watch, red for risk.
-const dialBarColor = (cfg, v) => {
-  const st = levelStatus(v, cfg.bands(), cfg.dp);
-  return st === "ideal" ? cfg.tint : DIAL_STATUS[st].color;
-};
+// How far a reading sits outside the ideal band: 0 inside it, rising to 1 at
+// the risk limit and staying there past it. Where the limit is the ideal edge
+// itself (Neocaridina temp), the ramp runs over a fifth of the band's width.
+function dialOffIdeal(b, v) {
+  const ramp = (lim, edge) => Math.abs(lim - edge) || (b.ideal[1] - b.ideal[0]) * 0.2;
+  if (v < b.ideal[0]) return Math.min(1, (b.ideal[0] - v) / ramp(b.limit[0], b.ideal[0]));
+  if (v > b.ideal[1]) return Math.min(1, (v - b.ideal[1]) / ramp(b.limit[1], b.ideal[1]));
+  return 0;
+}
+// The centre reading's colour: the sensor's own, shading to risk red the
+// further it strays from ideal. Judged on the number as displayed. Mixed in
+// OKLCH so the way there runs warm (aqua through orange, blue through
+// magenta) rather than through RGB's muddy grey.
+const DIAL_OKLCH = typeof CSS !== "undefined" && CSS.supports("color", "color-mix(in oklch, red, blue)");
+function dialValColor(cfg, v) {
+  v = Number(v.toFixed(cfg.dp));
+  const col = cfg.valColor(v), k = dialOffIdeal(cfg.bands(), v);
+  if (k === 0) return col;
+  if (DIAL_OKLCH) return `color-mix(in oklch, ${col}, #ff4d6d ${(k * 100).toFixed(0)}%)`;
+  const rgb = col.startsWith("#") ? [1, 3, 5].map((i) => parseInt(col.slice(i, i + 2), 16)) : col.match(/\d+/g).map(Number);
+  const red = [255, 77, 109];
+  return `rgb(${rgb.map((c, i) => Math.round(c + (red[i] - c) * k)).join(",")})`;
+}
 
 // This tank's ORP baseline since the probe was calibrated (2026-10-14
 // 10:46-10:52 CT). ORP swings ~35-40 mV a day (peak ~10:00, trough ~19:00
@@ -684,7 +698,7 @@ function renderDial(key) {
     let r = scale(v);
     if (Math.abs(r - DIAL.rb) < 0.6) r = DIAL.rb + 0.6;   // a steady bar still shows as a dot
     const [x1, y1] = dialPt(DIAL.rb, a), [x2, y2] = dialPt(r, a);
-    lines += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${dialBarColor(cfg, v)}" stroke-opacity="${(0.22 + 0.78 * (1 - age) ** 1.3).toFixed(2)}"/>`;
+    lines += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${cfg.tint}" stroke-opacity="${(0.22 + 0.78 * (1 - age) ** 1.3).toFixed(2)}"/>`;
   }
   s += `<g class="dial-bars">${lines}</g>`;
 
@@ -758,7 +772,7 @@ function dialsSetLive() {
 
     const orb = el.querySelector("[data-orb]"), bar = el.querySelector("[data-live]");
     if (orb && live != null) {
-      const [x, y] = dialPt(ctx.scale(live), 0), col = dialBarColor(cfg, live);
+      const [x, y] = dialPt(ctx.scale(live), 0), col = cfg.tint;
       orb.setAttribute("transform", `translate(${x.toFixed(1)},${y.toFixed(1)})`);
       orb.setAttribute("visibility", "visible");
       const glow = orb.querySelector("[data-orb-glow]");
@@ -799,7 +813,7 @@ function showDialCenter(key, v, ts) {
   const lang = dialLang();
   const when = `<span class="dial-when">${ts == null ? (lang === "jp" ? "いま" : "now") : dialClock(ts)}</span>`;
   if (v == null) { box.innerHTML = `${when}<div class="dial-val dial-val-empty">--</div>`; return; }
-  box.innerHTML = when + cfg.center(v, { ...ctx, scrubbing: ts != null }, lang);
+  box.innerHTML = when + cfg.center(v, { ...ctx, scrubbing: ts != null, valCol: dialValColor(cfg, v) }, lang);
 }
 
 // Hover (or drag on touch) over a ring to read any bar of the last 24h.

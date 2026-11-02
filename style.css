@@ -420,8 +420,6 @@ main {
 .dial-legend em { font-style: normal; }
 .dial-legend b { display: inline-block; width: 14px; height: 6px; border-radius: 3px; }
 .dial-legend .lg-bar     { background: currentColor; }
-.dial-legend .lg-watch   { color: #ffd86b; }
-.dial-legend .lg-risk    { color: #ff4d6d; }
 .dial-legend .lg-avg     { height: 2px; background: radial-gradient(circle, rgba(249, 234, 255, 0.6) 0.9px, transparent 1.1px) 0 50% / 4px 2px repeat-x; }
 .dial-legend .lg-num     { font-style: normal; color: #c4b5fd; font-variant-numeric: tabular-nums; }
 .dial-legend .lg-co2     { height: 3px; background: radial-gradient(circle, #7fffd0 1.4px, transparent 1.6px) 0 50% / 4px 3px repeat-x; }
