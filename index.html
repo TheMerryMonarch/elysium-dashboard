@@ -249,6 +249,18 @@
         <div class="dial-stats" id="orp-swing" role="img"></div>
         <div class="dial-legend"><span><b class="lg-bar" style="color:#a78bfa"></b><em data-en="15-min average" data-jp="15分平均">15-min average</em></span><span><b class="lg-avg"></b><em data-en="24h avg" data-jp="24時間平均">24h avg</em><i class="lg-num" id="orp-avg"></i></span></div>
       </section>
+
+      <!-- Hidden until the TDS probe sends its first reading. -->
+      <section class="sensor-panel dial-panel" id="tds-panel" hidden>
+        <div class="sensor-head">
+          <span class="sensor-name" id="tds-label">TDS</span>
+          <span class="dial-status" id="tds-status" hidden></span>
+        </div>
+        <div id="tds-last-updated" class="sensor-subtext">Last updated —</div>
+        <div class="dial-wrap"><div class="dial" id="tds-dial"></div></div>
+        <div class="dial-stats" id="tds-swing" role="img"></div>
+        <div class="dial-legend"><span><b class="lg-bar" style="color:#ff9e5e"></b><em data-en="15-min average" data-jp="15分平均">15-min average</em></span><span><b class="lg-avg"></b><em data-en="24h avg" data-jp="24時間平均">24h avg</em><i class="lg-num" id="tds-avg"></i></span></div>
+      </section>
     </div>
   </div>
 
@@ -307,6 +319,7 @@ const translations = {
     ph: "pH",
     doLabel: "Dissolved Oxygen",
     orp: "ORP",
+    tds: "TDS",
     biota: "Interesting Flora & Fauna",
     specs: "Specs",
     sleepTitle: "Shh — the shrimp are sleeping",
@@ -322,6 +335,7 @@ const translations = {
     ph: "pH",
     doLabel: "溶存酸素",
     orp: "酸化還元電位",
+    tds: "総溶解固形物",
     biota: "興味深い動植物",
     specs: "機材",
     sleepTitle: "しーっ — エビたちは眠っています",
@@ -365,6 +379,9 @@ function applyLanguage() {
   const ol = document.getElementById("orp-label");
   if (ol) ol.textContent = t.orp;
 
+  const tl = document.getElementById("tds-label");
+  if (tl) tl.textContent = t.tds;
+
   document.querySelector(".lang-toggle").textContent = t.button;
 
   // Small static labels carry both languages on the element itself.
@@ -407,8 +424,10 @@ async function updateDashboard() {
   // 0.0 is the old broken push mapping rather than a reading.
   const doPct = num(data.do_percent) || null;
   const orp = num(data.orp_mv);
+  // 0.0 is what the API sends while no TDS probe is connected.
+  const tds = num(data.tds_us_cm) ? num(data.tds_us_cm) * TDS_PPM_PER_US : null;
 
-  dialLatest = { temp, ph: phVal, do: doPct, orp, timestamp: data.timestamp };
+  dialLatest = { temp, ph: phVal, do: doPct, orp, tds, timestamp: data.timestamp };
   dialsSetLive();
 
   // Feed the soundscape: pH sets its key, DO its tempo, temperature its tone.
@@ -447,18 +466,21 @@ const TANK_SPECIES = "neocaridina";
 // flagging, so its top values sit out of reach; its swing is in percentage
 // points, and a big one means a deep overnight low. Neocaridina temp is the
 // keeper's own range (2026-10-26): 70-75 °F, and anything outside it is a risk.
+// TDS is in ppm and its limits are placeholders until the probe is in.
 const SPECIES_PROFILES = {
   neocaridina: {
     en: "Neocaridina", jp: "ネオカリディナ",
     temp: { ideal: [70, 75],   limit: [70, 75],   swing: { watch: 3,   risk: 5 } },
     ph:   { ideal: [6.8, 7.8], limit: [6.2, 8.2], swing: { watch: 0.8, risk: 1.2 } },
-    do:   { ideal: [60, 999],  limit: [45, 999], swing: { watch: 40,  risk: 60 } }
+    do:   { ideal: [60, 999],  limit: [45, 999], swing: { watch: 40,  risk: 60 } },
+    tds:  { ideal: [150, 250], limit: [100, 350], swing: { watch: 25,  risk: 50 } }
   },
   caridina: {
     en: "Caridina", jp: "カリディナ",
     temp: { ideal: [68, 74],   limit: [62, 77],   swing: { watch: 2,   risk: 4 } },
     ph:   { ideal: [5.8, 6.6], limit: [5.5, 7.0], swing: { watch: 0.6, risk: 1.0 } },
-    do:   { ideal: [70, 999],  limit: [55, 999], swing: { watch: 30,  risk: 50 } }
+    do:   { ideal: [70, 999],  limit: [55, 999], swing: { watch: 30,  risk: 50 } },
+    tds:  { ideal: [100, 160], limit: [80, 200],  swing: { watch: 15,  risk: 30 } }
   }
 };
 const PROFILE = SPECIES_PROFILES[TANK_SPECIES];
@@ -480,8 +502,11 @@ const swingStatus = (s, sw) => s >= sw.risk ? "risk" : s >= sw.watch ? "watch" :
 // in for a lower one, at most `reach`. The light schedule rides the rim at rl.
 const DIAL = { cx: 200, cy: 200, rb: 124, reach: 38, rl: 176 };
 const DAY_MS = 864e5;
+// The probe reports conductivity (the API's tds_us_cm); shrimp keepers read TDS
+// in ppm, at the common 0.5 factor most TDS pens use.
+const TDS_PPM_PER_US = 0.5;
 
-let dialSeries = null;   // { temp, ph, do, orp }: [[ms, value], ...] in 5-min buckets
+let dialSeries = null;   // { temp, ph, do, orp, tds }: [[ms, value], ...] in 5-min buckets
 let dialLatest = {};     // newest /latest reading
 const dialViews = {};    // per-sensor render state, for live updates + scrubbing
 
@@ -511,7 +536,8 @@ async function updateDials() {
       ph:   bucketHistory(history, r => r.ph ?? r.pH ?? r.ph_value),
       do:   bucketHistory(history, r => r.do_percent || null),
       // Readings from before the probe settled are the probe, not the tank.
-      orp:  bucketHistory(history, r => r.orp_mv).filter(([t]) => t >= Date.parse(ORP_BASELINE.since))
+      orp:  bucketHistory(history, r => r.orp_mv).filter(([t]) => t >= Date.parse(ORP_BASELINE.since)),
+      tds:  bucketHistory(history, r => r.tds_us_cm ? r.tds_us_cm * TDS_PPM_PER_US : null)
     };
   }
   renderDials();
@@ -599,6 +625,14 @@ const DIAL_SENSORS = {
       return `<div class="dial-val" style="color:${c.valCol}">${Math.round(v)}<small>mV</small></div>` +
         `<div class="dial-sub">${sign}${Math.abs(dv)} mV ${lang === "jp" ? "（基準比）" : "vs baseline"}</div>`;
     }
+  },
+
+  // Hidden until the probe's first reading (hideEmpty).
+  tds: {
+    bands: () => PROFILE.tds, dp: 0, minSpan: 40, tint: "#ff9e5e", valColor: () => "#ffd0ad", hideEmpty: true,
+    swingFmt: (x) => Math.round(x) + " ppm", valFmt: (x) => Math.round(x) + " ppm",
+    center: (v, c) => `<div class="dial-val" style="color:${c.valCol}">${Math.round(v)}<small>ppm</small></div>` +
+      `<div class="dial-sub">${Math.round(v / TDS_PPM_PER_US)} µS/cm</div>`
   }
 };
 // How far a reading sits outside the ideal band: 0 inside it, rising to 1 at
@@ -760,6 +794,7 @@ function dialsSetLive() {
     const { el, cfg, ctx, data } = view;
     const live = dialLatest[key] ?? (data.length ? data[data.length - 1][1] : null);
     ctx.live = live;
+    if (cfg.hideEmpty) el.closest(".dial-panel").hidden = live == null && !data.length;
 
     const pill = document.getElementById(`${key}-status`);
     if (pill) {

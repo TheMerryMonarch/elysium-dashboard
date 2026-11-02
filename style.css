@@ -372,6 +372,14 @@ main {
 }
 
 .dial-panel .sensor-subtext { margin-bottom: 4px; }
+/* .sensor-panel's display:flex would otherwise beat [hidden] (the TDS card waits for its probe). */
+.dial-panel[hidden] { display: none; }
+/* An odd card out (the fifth dial) sits centred on its own row at the same width as the rest. */
+.compact-right > .dial-panel:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: calc(50% - 10px);
+}
 /* Under each dial: low | 24h swing | high */
 .dial-stats {
     display: grid;
@@ -386,7 +394,7 @@ main {
 .dial-stats:empty { display: none; }
 .dial-stat { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .dial-stat:last-child { align-items: flex-end; text-align: right; }
-.dial-stat b { font-size: 1.05rem; font-weight: 620; color: #f9eaff; }
+.dial-stat b { font-size: 1.05rem; font-weight: 620; color: #f9eaff; white-space: nowrap; }
 .dial-stat-k { font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; color: #9aa0c0; }
 .dial-stat-t { font-size: 0.68rem; color: #8b80b8; }
 .dial-stat-swing { align-items: center; min-width: 120px; }
@@ -512,6 +520,10 @@ main {
 
     .compact-right {
         grid-template-columns: 1fr;
+    }
+
+    .compact-right > .dial-panel:last-child:nth-child(odd) {
+        width: 100%;
     }
 
     header {
