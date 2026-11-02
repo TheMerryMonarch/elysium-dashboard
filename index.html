@@ -626,18 +626,19 @@ function dialValColor(cfg, v) {
 }
 
 // This tank's ORP baseline since the probe was calibrated (2026-10-14
-// 10:46-10:52 CT). ORP swings ~35-40 mV a day (peak ~10:00, trough ~19:00
-// CT); before calibration the daily median was ~199 mV, 5th-95th percentile
-// 172-208. Calibration netted out to about -6 mV once the probe recovered, so
-// the median and band are that cycle shifted by -6. Provisional until a week
-// of stable data; elysium_pi/scripts/orp_baseline_reminder.py emails the
-// keeper a replacement baseline when there is one. `since` hides the
-// calibration and the probe's recovery from it from the dial.
-const ORP_BASELINE = { mv: 193, band: [166, 203], since: "2026-10-14T18:30:00Z" };
-// The dial's ranges (keeper's choice, 2026-10-14): ideal is the baseline band,
-// risk is a reading past 120 or 250 mV, and a 24h swing past 45 / 65 mV is
-// watch / risk (a normal day swings ~35-40).
-const ORP_BANDS = { ideal: ORP_BASELINE.band, limit: [120, 250], swing: { watch: 45, risk: 65 } };
+// 10:46-10:52 CT): the median and 5th-95th percentile of every OK reading in
+// the first stable week, the 24h windows from 2026-10-25 to 2026-11-01 10:05 CT
+// (daily medians 230-242 mV), as emailed by
+// elysium_pi/scripts/orp_baseline_reminder.py and set on 2026-11-02. It
+// replaces the provisional 193 mV, band 166-203. `since` hides the
+// calibration and the probe's recovery from it from the dial; re-take the
+// baseline after any recalibration.
+const ORP_BASELINE = { mv: 237, band: [212, 249], since: "2026-10-14T18:30:00Z" };
+// The dial's ranges (keeper's choice): ideal is the baseline band, risk is a
+// reading ~46 mV outside it (past 166 or 296 mV; moved with the baseline on
+// 2026-11-02, was 120 / 250), and a 24h swing past 45 / 65 mV is watch / risk
+// (a normal day swings ~35-40).
+const ORP_BANDS = { ideal: ORP_BASELINE.band, limit: [166, 296], swing: { watch: 45, risk: 65 } };
 
 /* ---- render ---- */
 function renderDial(key) {
