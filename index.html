@@ -16,7 +16,7 @@
   <meta name="twitter:card" content="summary_large_image" />
 
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.7.4/dist/hls.min.js" integrity="sha384-p9vgU/7IYJWd3I4STrtqxqR/2cAQlhIX7D/HrTnIMEjjcUox165b7se7sxmm3zDg" crossorigin="anonymous"></script>
   <script src="soundscape.js" defer></script>
   <!-- Analytics: Umami Cloud (cookieless) + Elysium's own events. -->
   <script defer src="https://cloud.umami.is/script.js"
@@ -34,7 +34,7 @@
       <span class="sound-bars" aria-hidden="true"><i></i><i></i><i></i></span>
       <span class="sound-label">Listen</span>
     </button>
-    <button class="lang-toggle" onclick="toggleLanguage()">日本語</button>
+    <button class="lang-toggle">日本語</button>
   </div>
 </header>
 
@@ -86,7 +86,6 @@
           </g>
         </svg>
         <div class="sleep-title" id="sleep-title">Shh &mdash; the shrimp are sleeping</div>
-        <div class="sleep-sub" id="sleep-sub">(and so are their owners)</div>
         <div class="sleep-chip">
           <span class="sleep-dot" aria-hidden="true"></span>
           <span id="sleep-wake">Wakes in</span>&nbsp;<b id="sleep-countdown">&mdash;</b>
@@ -323,7 +322,6 @@ const translations = {
     biota: "Interesting Flora & Fauna",
     specs: "Specs",
     sleepTitle: "Shh — the shrimp are sleeping",
-    sleepSub: "(and so are their owners)",
     sleepWake: "Wakes in",
     sleepBadge: "SLEEPING",
     button: "日本語"
@@ -339,7 +337,6 @@ const translations = {
     biota: "興味深い動植物",
     specs: "機材",
     sleepTitle: "しーっ — エビたちは眠っています",
-    sleepSub: "（飼い主も眠っています）",
     sleepWake: "起床まで",
     sleepBadge: "おやすみ",
     button: "English"
@@ -353,7 +350,7 @@ function applyLanguage() {
   const sl = document.querySelector(".stream-label");
   if (sl) sl.textContent = t.stream;
 
-  const sleepIds = { "sleep-title": t.sleepTitle, "sleep-sub": t.sleepSub, "sleep-wake": t.sleepWake };
+  const sleepIds = { "sleep-title": t.sleepTitle, "sleep-wake": t.sleepWake };
   for (const id in sleepIds) {
     const el = document.getElementById(id);
     if (el) el.textContent = sleepIds[id];
@@ -400,6 +397,9 @@ function toggleLanguage() {
   currentLang = currentLang === "en" ? "jp" : "en";
   applyLanguage();
 }
+// Registered here, ahead of the deferred analytics.js, whose own click listener
+// reads the new language and so has to run after this one.
+document.querySelector(".lang-toggle").addEventListener("click", toggleLanguage);
 
 /* =======================
    SAFE FETCH (LATEST)
@@ -417,17 +417,24 @@ async function fetchLatest() {
 
 async function updateDashboard() {
   const data = await fetchLatest();
-  const num = (v) => (v == null || v === "" || !Number.isFinite(Number(v))) ? null : Number(v);
+  // A reading stamped further ahead than the API accepts is ignored whole.
+  const ahead = Date.parse(data.timestamp) > Date.now() + MAX_AHEAD_MS;
+  const num = (v, range) => {
+    if (ahead || v == null || v === "") return null;
+    const n = Number(v);
+    return Number.isFinite(n) && n >= range[0] && n <= range[1] ? n : null;
+  };
 
-  const temp = num(data.temperature_f ?? data.temp_f);
-  const phVal = num(data.ph ?? data.pH ?? data.ph_value);
+  const temp = num(data.temperature_f ?? data.temp_f, PLAUSIBLE.temp);
+  const phVal = num(data.ph ?? data.pH ?? data.ph_value, PLAUSIBLE.ph);
   // 0.0 is the old broken push mapping rather than a reading.
-  const doPct = num(data.do_percent) || null;
-  const orp = num(data.orp_mv);
+  const doPct = num(data.do_percent, PLAUSIBLE.do) || null;
+  const orp = num(data.orp_mv, PLAUSIBLE.orp);
   // 0.0 is what the API sends while no TDS probe is connected.
-  const tds = num(data.tds_us_cm) ? num(data.tds_us_cm) * TDS_PPM_PER_US : null;
+  const tdsUs = num(data.tds_us_cm, PLAUSIBLE.tds);
+  const tds = tdsUs ? tdsUs * TDS_PPM_PER_US : null;
 
-  dialLatest = { temp, ph: phVal, do: doPct, orp, tds, timestamp: data.timestamp };
+  dialLatest = { temp, ph: phVal, do: doPct, orp, tds, timestamp: ahead ? null : data.timestamp };
   dialsSetLive();
 
   // Feed the soundscape: pH sets its key, DO its tempo, temperature its tone.
@@ -505,19 +512,33 @@ const DAY_MS = 864e5;
 // The probe reports conductivity (the API's tds_us_cm); shrimp keepers read TDS
 // in ppm, at the common 0.5 factor most TDS pens use.
 const TDS_PPM_PER_US = 0.5;
+// [min, max] for each reading, the same limits the API's /ingest applies. tds is
+// the API's tds_us_cm, before conversion to ppm. Values outside them are left off
+// the dials.
+const PLAUSIBLE = {
+  temp: [-40, 212],
+  ph:   [-1, 15],
+  do:   [-5, 500],
+  orp:  [-1100, 1100],
+  tds:  [0, 100000]
+};
+const MAX_AHEAD_MS = 5 * 60000;   // the API's allowance for a timestamp ahead of now
 
 let dialSeries = null;   // { temp, ph, do, orp, tds }: [[ms, value], ...] in 5-min buckets
 let dialLatest = {};     // newest /latest reading
+let dialsFetchedAt = 0;  // when the history was last requested
 const dialViews = {};    // per-sensor render state, for live updates + scrubbing
 
-// Average the raw ~20s history into 5-minute buckets over the last 24h.
-function bucketHistory(history, get, minutes = 5) {
+// Average the raw ~20s history into 5-minute buckets over the last 24h, leaving
+// out rows stamped ahead of now and values outside range.
+function bucketHistory(history, get, range, minutes = 5) {
   const now = Date.now(), size = minutes * 60000, buckets = new Map();
   for (const r of history) {
     const ts = Date.parse(r.timestamp), raw = get(r);
     if (raw == null || raw === "") continue;
     const n = Number(raw);
     if (!Number.isFinite(ts) || ts < now - DAY_MS || ts > now || !Number.isFinite(n)) continue;
+    if (n < range[0] || n > range[1]) continue;
     const k = Math.floor(ts / size), b = buckets.get(k) || { sum: 0, count: 0 };
     b.sum += n; b.count += 1;
     buckets.set(k, b);
@@ -527,17 +548,18 @@ function bucketHistory(history, get, minutes = 5) {
 }
 
 async function updateDials() {
+  dialsFetchedAt = Date.now();
   const history = await fetchHistory();
   if (!Array.isArray(history) || history.length === 0) {
     console.warn("No history returned; dials will be empty.");
   } else {
     dialSeries = {
-      temp: bucketHistory(history, r => r.temperature_f ?? r.temp_f ?? r.value),
-      ph:   bucketHistory(history, r => r.ph ?? r.pH ?? r.ph_value),
-      do:   bucketHistory(history, r => r.do_percent || null),
+      temp: bucketHistory(history, r => r.temperature_f ?? r.temp_f ?? r.value, PLAUSIBLE.temp),
+      ph:   bucketHistory(history, r => r.ph ?? r.pH ?? r.ph_value, PLAUSIBLE.ph),
+      do:   bucketHistory(history, r => r.do_percent || null, PLAUSIBLE.do),
       // Readings from before the probe settled are the probe, not the tank.
-      orp:  bucketHistory(history, r => r.orp_mv).filter(([t]) => t >= Date.parse(ORP_BASELINE.since)),
-      tds:  bucketHistory(history, r => r.tds_us_cm ? r.tds_us_cm * TDS_PPM_PER_US : null)
+      orp:  bucketHistory(history, r => r.orp_mv, PLAUSIBLE.orp).filter(([t]) => t >= Date.parse(ORP_BASELINE.since)),
+      tds:  bucketHistory(history, r => r.tds_us_cm || null, PLAUSIBLE.tds).map(([t, v]) => [t, v * TDS_PPM_PER_US])
     };
   }
   renderDials();
@@ -662,8 +684,7 @@ function dialValColor(cfg, v) {
 // This tank's ORP baseline since the probe was calibrated (2026-10-14
 // 10:46-10:52 CT): the median and 5th-95th percentile of every OK reading in
 // the first stable week, the 24h windows from 2026-10-25 to 2026-11-01 10:05 CT
-// (daily medians 230-242 mV), as emailed by
-// elysium_pi/scripts/orp_baseline_reminder.py and set on 2026-11-02. It
+// (daily medians 230-242 mV), set on 2026-11-02. It
 // replaces the provisional 193 mV, band 166-203. `since` hides the
 // calibration and the probe's recovery from it from the dial; re-take the
 // baseline after any recalibration.
@@ -1510,7 +1531,11 @@ window.addEventListener("DOMContentLoaded", () => {
   updateBallot();
 
   setInterval(updateDashboard, 5000);    // live values
-  setInterval(updateDials, 60000);       // dials: history + rotation every 60s
+  // dials: history + rotation every 60s while the tab is showing
+  setInterval(() => { if (!document.hidden) updateDials(); }, 60000);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && Date.now() - dialsFetchedAt >= 60000) updateDials();
+  });
   setInterval(updateLightCycle, 30000);  // light/CO2 phase every 30s
   setInterval(tickClock, 1000);          // live clock
   setInterval(updateMother, 60000);      // MUSASHI feed every 60s
@@ -1529,15 +1554,12 @@ window.addEventListener("DOMContentLoaded", () => {
   const sleepCard = document.getElementById("stream-sleep");
   if (!video) return;
 
-  // Quiet hours. The Pi stops elysium-stream overnight rather than encoding and
-  // uploading a black frame for seven hours, so there is genuinely nothing to
-  // play. Hours mirror quiet_hours in mother/rules.yaml -- keep them in step.
-  const QUIET_START = 22;   // 22:00 inclusive
-  const QUIET_END   = 5;    // 05:00 exclusive
+  // Quiet hours: the stream is off overnight, so there is nothing to play.
+  const QUIET_START = 22;
+  const QUIET_END   = 5;
   const TANK_TZ = "America/Chicago";
 
-  // The tank's hour, not the viewer's -- someone watching from Tokyo should
-  // still see the shrimp asleep on Texas time. Intl handles DST for us.
+  // The tank's hour, not the viewer's. Intl handles DST for us.
   function tankHour() {
     try {
       return parseInt(new Intl.DateTimeFormat("en-US", {

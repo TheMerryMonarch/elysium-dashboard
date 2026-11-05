@@ -1180,8 +1180,7 @@ main {
 
 /* =======================
    QUIET HOURS — sleep card
-   Shown in place of the player 22:00–05:00 tank time, when the Pi stops
-   encoding rather than uploading seven hours of black frame.
+   Shown in place of the player during quiet hours, when the stream is off.
 ======================= */
 .stream-sleep {
     position: absolute;
