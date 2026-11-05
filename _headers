@@ -1,0 +1,16 @@
+# Netlify response headers. Netlify reads this file at deploy and does not serve it.
+#
+# The CSP is report-only: violations show in the browser console and nothing is
+# blocked. It keeps 'unsafe-inline' for scripts because the page has two inline
+# <script> blocks.
+#
+# Do not add Cross-Origin-Embedder-Policy: it would block the cross-origin stream
+# and CDN script. HSTS is left to Netlify.
+
+/*
+  Content-Security-Policy-Report-Only: default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net/npm/hls.js@1.7.4/ https://cloud.umami.is/script.js; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' https://upload.wikimedia.org; media-src blob: https://live.elysiumshrimptank.com; connect-src https://elysium-cloud.onrender.com https://live.elysiumshrimptank.com https://gateway.umami.is https://en.wikipedia.org; worker-src blob:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()
+  Cross-Origin-Opener-Policy: same-origin
