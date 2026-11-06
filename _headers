@@ -8,7 +8,7 @@
 # and CDN script. HSTS is left to Netlify.
 
 /*
-  Content-Security-Policy-Report-Only: default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net/npm/hls.js@1.7.4/ https://cloud.umami.is/script.js; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' https://upload.wikimedia.org; media-src blob: https://live.elysiumshrimptank.com; connect-src https://elysium-cloud.onrender.com https://live.elysiumshrimptank.com https://gateway.umami.is https://en.wikipedia.org; worker-src blob:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net/npm/hls.js@1.7.4/ https://cloud.umami.is/script.js; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' https://upload.wikimedia.org; media-src blob: https://live.elysiumshrimptank.com; connect-src https://elysium-cloud.onrender.com https://live.elysiumshrimptank.com https://gateway.umami.is https://en.wikipedia.org; worker-src blob:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
