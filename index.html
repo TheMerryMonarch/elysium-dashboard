@@ -285,6 +285,12 @@ const ENDPOINTS = {
   health: `${API_BASE}/health`
 };
 
+// The dissolved-oxygen probe is out of service. While this is true the DO dial
+// keeps its place on the page, dimmed and marked offline, and no DO reading from
+// the API reaches the dial or the soundscape. Set it to false once a new cap has
+// passed its in-air check, and the dial goes back to working as it always has.
+const DO_OFFLINE = true;
+
 /* =======================
    TIME HELPERS (CST)
 ======================= */
@@ -428,7 +434,7 @@ async function updateDashboard() {
   const temp = num(data.temperature_f ?? data.temp_f, PLAUSIBLE.temp);
   const phVal = num(data.ph ?? data.pH ?? data.ph_value, PLAUSIBLE.ph);
   // 0.0 is the old broken push mapping rather than a reading.
-  const doPct = num(data.do_percent, PLAUSIBLE.do) || null;
+  const doPct = DO_OFFLINE ? null : num(data.do_percent, PLAUSIBLE.do) || null;
   const orp = num(data.orp_mv, PLAUSIBLE.orp);
   // 0.0 is what the API sends while no TDS probe is connected.
   const tdsUs = num(data.tds_us_cm, PLAUSIBLE.tds);
@@ -495,7 +501,9 @@ const PROFILE = SPECIES_PROFILES[TANK_SPECIES];
 const DIAL_STATUS = {
   ideal: { color: "#7fffd0", en: "ideal", jp: "良好" },
   watch: { color: "#ffd86b", en: "watch", jp: "注意" },
-  risk:  { color: "#ff4d6d", en: "risk",  jp: "危険" }
+  risk:  { color: "#ff4d6d", en: "risk",  jp: "危険" },
+  // Not a judgement on a reading: shown by any dial whose cfg.offline is set.
+  offline: { color: "#9aa0c0", en: "offline", jp: "オフライン" }
 };
 // Judged on the number as displayed, so "6.20" never reads as below a 6.2 limit.
 const levelStatus = (v, b, dp = 2) => {
@@ -556,7 +564,7 @@ async function updateDials() {
     dialSeries = {
       temp: bucketHistory(history, r => r.temperature_f ?? r.temp_f ?? r.value, PLAUSIBLE.temp),
       ph:   bucketHistory(history, r => r.ph ?? r.pH ?? r.ph_value, PLAUSIBLE.ph),
-      do:   bucketHistory(history, r => r.do_percent || null, PLAUSIBLE.do),
+      do:   DO_OFFLINE ? [] : bucketHistory(history, r => r.do_percent || null, PLAUSIBLE.do),
       // Readings from before the probe settled are the probe, not the tank.
       orp:  bucketHistory(history, r => r.orp_mv, PLAUSIBLE.orp).filter(([t]) => t >= Date.parse(ORP_BASELINE.since)),
       tds:  bucketHistory(history, r => r.tds_us_cm || null, PLAUSIBLE.tds).map(([t, v]) => [t, v * TDS_PPM_PER_US])
@@ -624,6 +632,8 @@ const DIAL_SENSORS = {
 
   do: {
     bands: () => PROFILE.do, dp: 1, minSpan: 50, tint: "#60a5fa", valColor: () => "#bfdbfe",
+    // Dims the panel and sets its status; this note replaces its update line.
+    offline: DO_OFFLINE ? { en: "Probe under maintenance", jp: "プローブ点検中" } : null,
     swingFmt: (x) => Math.round(x) + "%", valFmt: (x) => x.toFixed(1) + "%",
     // A water line in the hub at the current saturation (moved by dialsSetLive).
     under: () => `<defs><clipPath id="do-hub"><circle cx="${DIAL.cx}" cy="${DIAL.cy}" r="72"/></clipPath></defs>` +
@@ -744,7 +754,7 @@ function renderDial(key) {
 
   // The bed the bars sit in, and the 24h-average baseline through it
   s += `<path class="dial-floor" fill-rule="evenodd" d="${dialRing(DIAL.rb + DIAL.reach + 6, DIAL.rb - DIAL.reach - 6)}"/>`;
-  if (cfg.under && (ex || key === "do")) s += cfg.under(ctx);
+  if (cfg.under && !cfg.offline && (ex || key === "do")) s += cfg.under(ctx);
   if (bars.length) s += `<circle class="dial-base" cx="${DIAL.cx}" cy="${DIAL.cy}" r="${DIAL.rb}"/>`;
 
   // One bar per 15 minutes, dimming with age
@@ -816,12 +826,14 @@ function dialsSetLive() {
     const live = dialLatest[key] ?? (data.length ? data[data.length - 1][1] : null);
     ctx.live = live;
     if (cfg.hideEmpty) el.closest(".dial-panel").hidden = live == null && !data.length;
+    if (cfg.offline) el.closest(".dial-panel").classList.add("is-offline");
 
     const pill = document.getElementById(`${key}-status`);
     if (pill) {
-      pill.hidden = live == null;
-      if (live != null) {
-        const st = DIAL_STATUS[levelStatus(live, cfg.bands(), cfg.dp)];
+      const st = cfg.offline ? DIAL_STATUS.offline
+        : live != null ? DIAL_STATUS[levelStatus(live, cfg.bands(), cfg.dp)] : null;
+      pill.hidden = !st;
+      if (st) {
         pill.style.color = st.color;
         pill.innerHTML = `<i></i>${st[lang]}`;
       }
@@ -856,7 +868,7 @@ function dialsSetLive() {
     if (lu) {
       const sec = dialLatest.timestamp ? secondsAgo(dialLatest.timestamp) : null;
       const sp = cfg.targets?.[lang] ?? (cfg.bands() ? PROFILE[lang] : null);
-      lu.textContent = lang === "jp"
+      lu.textContent = cfg.offline ? cfg.offline[lang] : lang === "jp"
         ? `${sec == null ? "—" : sec + "秒前に更新"}${sp ? ` · ${sp}基準` : ""}`
         : `${sec == null ? "Last updated —" : `Last updated ${sec}s ago`}${sp ? ` · ${sp} targets` : ""}`;
     }

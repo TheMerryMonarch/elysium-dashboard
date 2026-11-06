@@ -374,6 +374,16 @@ main {
 .dial-panel .sensor-subtext { margin-bottom: 4px; }
 /* .sensor-panel's display:flex would otherwise beat [hidden] (the TDS card waits for its probe). */
 .dial-panel[hidden] { display: none; }
+/* A dial with no probe behind it (cfg.offline): the dial and legend recede and
+   the ring loses its colour, while the heading, status and note stay readable. */
+.dial-panel.is-offline {
+    box-shadow:
+        0 14px 26px rgba(0, 0, 0, 0.8),
+        0 0 0 1px rgba(154, 160, 192, 0.18);
+}
+.dial-panel.is-offline .dial-wrap { opacity: 0.65; filter: saturate(0.35); }
+.dial-panel.is-offline .dial-legend { opacity: 0.8; }
+.dial-panel.is-offline .dial-status i { box-shadow: none; }
 /* An odd card out (the fifth dial) sits centred on its own row at the same width as the rest. */
 .compact-right > .dial-panel:last-child:nth-child(odd) {
     grid-column: 1 / -1;
