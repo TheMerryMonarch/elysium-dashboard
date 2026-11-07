@@ -1138,6 +1138,7 @@ const BALLOT_TEXT = {
     begins: wd => `BEGINS ${wd}`, votes: "BY VOTE", mother: "MUSASHI DECIDED", random: "BY LOT",
     cont: "CONTINUE THE STORY?", failed: "VOTE NOT RECORDED. TRY AGAIN.",
     voteOpen: "VOTE OPEN", show: "Show the reading club", hide: "Minimize the reading club",
+    reflection: "AT THE DAY'S END", on: w => `on ${w}`, more: "READ MORE", less: "READ LESS",
   },
   jp: {
     club: "MUSASHIの真夜中の読書会", margin: "余白に",
@@ -1150,6 +1151,7 @@ const BALLOT_TEXT = {
     begins: wd => `${wd}開始`, votes: "投票により", mother: "MUSASHIが決定", random: "抽選により",
     cont: "続きを読む？", failed: "投票できませんでした。もう一度お試しください。",
     voteOpen: "投票受付中", show: "読書会を表示", hide: "読書会を最小化",
+    reflection: "一日の終わりに", on: w => `『${w}』について`, more: "続きを読む", less: "閉じる",
   },
 };
 const BALLOT_DAY_MS = 24 * 60 * 60 * 1000;
@@ -1159,13 +1161,27 @@ function ballotView(b, nowMs, myVote, lang, weekdayFmt) {
   if (!b || !b.now_reading) return null;
   const t = BALLOT_TEXT[lang] || BALLOT_TEXT.en;
   const nr = b.now_reading;
-  // Her shared margin notes, newest first, in her own words (not translated).
+  // Her margin notes through the day, newest first, in her own words (not translated).
   const notes = (Array.isArray(nr.commentary) ? nr.commentary : [])
     .filter(c => c && typeof c.text === "string" && c.text.trim())
-    .slice(0, 3)
+    .slice(0, 8)
     .map(c => ({ time: typeof c.time === "string" ? c.time : "", text: c.text.trim() }));
+  // Her nightly reflection, shown until the next one replaces it. It may be on
+  // the book she has just finished, so it says which book when that differs.
+  const r = nr.reflection;
+  let reflection = null;
+  if (r && typeof r.text === "string" && r.text.trim()) {
+    const paras = r.text.split(/\n\s*\n/).map(x => x.trim()).filter(Boolean);
+    const d = /^\d{4}-\d{2}-\d{2}$/.test(r.date || "") ? new Date(`${r.date}T12:00:00Z`) : null;
+    const date = d ? new Intl.DateTimeFormat(lang === "jp" ? "ja-JP" : "en-US",
+      { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" }).format(d).toUpperCase() : "";
+    const about = r.work_title && r.work_title !== nr.work_title ? t.on(r.work_title) : "";
+    reflection = { id: r.ts || r.date || "", label: [t.reflection, date].filter(Boolean).join(" · "),
+                   title: typeof r.title === "string" ? r.title.trim() : "", about, paras,
+                   more: t.more, less: t.less };
+  }
   const view = {
-    club: t.club, margin: t.margin, commentary: notes, voteOpen: t.voteOpen, show: t.show, hide: t.hide,
+    club: t.club, margin: t.margin, commentary: notes, reflection, voteOpen: t.voteOpen, show: t.show, hide: t.hide,
     reading: `${t.reading} · ${nr.author}, ${nr.work_title}`,
     passage: `${nr.title} · ${t.day(nr.day, nr.days)}`,
     status: b.status, headline: "", note: "", canVote: false, options: [],
@@ -1221,6 +1237,7 @@ function voterToken() {
 }
 
 let currentBallot = null;
+let reflectionOpen = "";   // the reflection this viewer expanded; re-renders keep it open
 const ballotWeekday = () => new Intl.DateTimeFormat(currentLang === "jp" ? "ja-JP" : "en-US",
   { timeZone: MOTHER_TZ, weekday: currentLang === "jp" ? "short" : "long" });
 
@@ -1275,8 +1292,25 @@ function renderBallot(errorText) {
       line.appendChild(document.createTextNode(c.text));
       margin.appendChild(line);
     }
-    if (!voteFirst) frag.appendChild(margin);
   }
+  let essay = null;
+  if (v.reflection) {
+    const r = v.reflection;
+    const open = reflectionOpen === r.id && r.id !== "";
+    essay = el("div", "mr-reflection" + (voteFirst ? " mr-margin-after" : "") + (open ? " is-open" : ""));
+    essay.appendChild(el("div", "mr-margin-label", r.label));
+    if (r.title) essay.appendChild(el("div", "mr-reflection-title", r.title));
+    if (r.about) essay.appendChild(el("div", "mr-reflection-about", r.about));
+    for (const para of open ? r.paras : r.paras.slice(0, 1)) essay.appendChild(el("p", "mr-reflection-p", para));
+    const more = el("button", "mr-reflection-more", open ? r.less : r.more);
+    more.type = "button";
+    more.setAttribute("aria-expanded", String(open));
+    more.addEventListener("click", () => { reflectionOpen = open ? "" : r.id; renderBallot(errorText); });
+    essay.appendChild(more);
+  }
+  // Her reflection goes above the notes: folded it is a few lines, and below
+  // eight notes in a short footer nobody would scroll to it.
+  if (!voteFirst) for (const part of [essay, margin]) if (part) frag.appendChild(part);
   frag.appendChild(el("div", "mr-head", v.headline));
   const list = el("div", "mr-options");
   for (const o of v.options) {
@@ -1291,7 +1325,7 @@ function renderBallot(errorText) {
   if (v.note) frag.appendChild(el("div", "mr-note", v.note));
   if (v.reason) frag.appendChild(el("div", "mr-reason", v.reason));
   if (errorText) frag.appendChild(el("div", "mr-error", errorText));
-  if (margin && voteFirst) frag.appendChild(margin);
+  if (voteFirst) for (const part of [essay, margin]) if (part) frag.appendChild(part);
   body.appendChild(frag);
   box.replaceChildren(toggle, body);
   box.hidden = false;
