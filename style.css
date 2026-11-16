@@ -1111,12 +1111,63 @@ main {
     overflow-wrap: anywhere;
 }
 .mr-comment + .mr-comment { margin-top: 0.35rem; }
+/* The book's words inside MUSASHI's notes and reflection, checked word for word on
+   the Pi before they are published. The curly marks are in the text itself,
+   so the browser adds none. */
+.mr-quote {
+    quotes: none;
+    font-style: italic;
+    color: #ecfff1;
+}
 .mr-comment-time {
     font-size: 0.58rem;
     letter-spacing: 0.1em;
     color: rgba(139, 255, 168, 0.6);
     margin-right: 0.5rem;
 }
+/* Her nightly reflection: one paragraph folded, the whole essay on request.
+   Open, it scrolls inside the footer like everything else there. */
+.mr-reflection {
+    margin: 0 0 0.6rem;
+    padding-left: 0.6rem;
+    border-left: 1px solid rgba(109, 255, 143, 0.3);
+}
+.mr-reflection.mr-margin-after { margin: 0.7rem 0 0; }
+.mr-reflection-title {
+    font-size: 0.64rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #a8ffbe;
+}
+.mr-reflection-about {
+    font-size: 0.6rem;
+    color: rgba(139, 255, 168, 0.6);
+}
+.mr-reflection-p {
+    margin: 0.35rem 0 0;
+    font-size: 0.7rem;
+    line-height: 1.55;
+    color: #c4ffd2;
+    overflow-wrap: anywhere;
+}
+.mr-reflection:not(.is-open) .mr-reflection-p {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.mr-reflection-more {
+    margin-top: 0.3rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: 0.56rem;
+    letter-spacing: 0.18em;
+    color: #6dff8f;
+    cursor: pointer;
+}
+.mr-reflection-more:hover, .mr-reflection-more:focus-visible { text-decoration: underline; }
 .mr-head {
     font-size: 0.6rem;
     letter-spacing: 0.16em;
