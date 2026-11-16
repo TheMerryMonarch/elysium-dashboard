@@ -1157,6 +1157,23 @@ const BALLOT_TEXT = {
 const BALLOT_DAY_MS = 24 * 60 * 60 * 1000;
 
 // --- ballot view (pure; no DOM, so it can be tested outside a browser) ---
+// The club prints the book's words in curly double marks and uses those marks
+// for nothing else: the Pi publishes a quotation only after finding it word
+// for word in the day's text. Split a note into MUSASHI's words and the book's,
+// the marks staying with the quotation.
+function quoteParts(text) {
+  const s = String(text);
+  const out = [];
+  let last = 0;
+  for (const m of s.matchAll(/“[^“”]+”/g)) {
+    if (m.index > last) out.push({ text: s.slice(last, m.index), quote: false });
+    out.push({ text: m[0], quote: true });
+    last = m.index + m[0].length;
+  }
+  if (last < s.length) out.push({ text: s.slice(last), quote: false });
+  return out;
+}
+
 function ballotView(b, nowMs, myVote, lang, weekdayFmt) {
   if (!b || !b.now_reading) return null;
   const t = BALLOT_TEXT[lang] || BALLOT_TEXT.en;
@@ -1256,6 +1273,11 @@ function renderBallot(errorText) {
     if (text !== undefined) n.textContent = text;
     return n;
   };
+  // MUSASHI's words as text, the book's set apart (style.css .mr-quote).
+  const withQuotes = (node, text) => {
+    for (const p of quoteParts(text)) node.appendChild(p.quote ? el("q", "mr-quote", p.text) : document.createTextNode(p.text));
+    return node;
+  };
   // The club title doubles as a minimize toggle, so the footer can fold down
   // to one line and hand the height back to her log. Remembered per browser.
   const collapsed = ballotStore("mother_reading_collapsed") === "1";
@@ -1289,7 +1311,7 @@ function renderBallot(errorText) {
     for (const c of v.commentary) {
       const line = el("div", "mr-comment");
       if (c.time) line.appendChild(el("span", "mr-comment-time", c.time));
-      line.appendChild(document.createTextNode(c.text));
+      withQuotes(line, c.text);
       margin.appendChild(line);
     }
   }
@@ -1301,7 +1323,7 @@ function renderBallot(errorText) {
     essay.appendChild(el("div", "mr-margin-label", r.label));
     if (r.title) essay.appendChild(el("div", "mr-reflection-title", r.title));
     if (r.about) essay.appendChild(el("div", "mr-reflection-about", r.about));
-    for (const para of open ? r.paras : r.paras.slice(0, 1)) essay.appendChild(el("p", "mr-reflection-p", para));
+    for (const para of open ? r.paras : r.paras.slice(0, 1)) essay.appendChild(withQuotes(el("p", "mr-reflection-p"), para));
     const more = el("button", "mr-reflection-more", open ? r.less : r.more);
     more.type = "button";
     more.setAttribute("aria-expanded", String(open));

@@ -1111,6 +1111,14 @@ main {
     overflow-wrap: anywhere;
 }
 .mr-comment + .mr-comment { margin-top: 0.35rem; }
+/* The book's words inside MUSASHI's notes and reflection, checked word for word on
+   the Pi before they are published. The curly marks are in the text itself,
+   so the browser adds none. */
+.mr-quote {
+    quotes: none;
+    font-style: italic;
+    color: #ecfff1;
+}
 .mr-comment-time {
     font-size: 0.58rem;
     letter-spacing: 0.1em;
