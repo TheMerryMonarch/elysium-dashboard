@@ -230,6 +230,10 @@
       <section class="sensor-panel dial-panel">
         <div class="sensor-head">
           <span class="sensor-name" id="do-label">Dissolved Oxygen</span>
+          <div class="info-tip" data-tip="do">
+            <button class="info-tip-btn" type="button" aria-expanded="false" aria-describedby="do-tip"><span aria-hidden="true">i</span></button>
+            <div class="info-tip-bubble" id="do-tip" role="tooltip"></div>
+          </div>
           <span class="dial-status" id="do-status" hidden></span>
         </div>
         <div id="do-last-updated" class="sensor-subtext">Last updated —</div>
@@ -241,6 +245,10 @@
       <section class="sensor-panel dial-panel">
         <div class="sensor-head">
           <span class="sensor-name" id="orp-label">ORP</span>
+          <div class="info-tip" data-tip="orp">
+            <button class="info-tip-btn" type="button" aria-expanded="false" aria-describedby="orp-tip"><span aria-hidden="true">i</span></button>
+            <div class="info-tip-bubble" id="orp-tip" role="tooltip"></div>
+          </div>
           <span class="dial-status" id="orp-status" hidden></span>
         </div>
         <div id="orp-last-updated" class="sensor-subtext">Last updated —</div>
@@ -395,6 +403,7 @@ function applyLanguage() {
   if (typeof updateLightCycle === "function") updateLightCycle();
   // Dial labels (hours, status, captions) are built in code too.
   if (typeof renderDials === "function") renderDials();
+  if (typeof renderInfoTips === "function") renderInfoTips();
 
   if (window.ElysiumSound) ElysiumSound.setLang(currentLang);
 }
@@ -704,6 +713,94 @@ const ORP_BASELINE = { mv: 237, band: [212, 249], since: "2026-10-14T18:30:00Z" 
 // 2026-11-02, was 120 / 250), and a 24h swing past 45 / 65 mV is watch / risk
 // (a normal day swings ~35-40).
 const ORP_BANDS = { ideal: ORP_BASELINE.band, limit: [166, 296], swing: { watch: 45, risk: 65 } };
+
+/* ---- info tips ----
+   The (i) beside a dial's name says what it measures, for visitors who don't
+   keep a tank. Shown on hover or keyboard focus, pinned by a click or tap;
+   Escape or a click elsewhere closes it. The numbers come from the bands
+   above, so the copy follows a baseline re-take or a species swap. To add
+   one to another dial, copy the .info-tip markup and add its key here. */
+const INFO_TIPS = {
+  do: {
+    en: () => ({
+      label: "What is dissolved oxygen?",
+      body: [
+        "How much oxygen is mixed into the water, as a share of the most it can hold at its temperature. Shrimp breathe it through their gills.",
+        "Plants release oxygen while the lights are on and everything uses it up overnight, so it climbs through the day and bottoms out before dawn."
+      ],
+      note: `Healthy for these shrimp: ${PROFILE.do.ideal[0]}% or higher.`
+    }),
+    jp: () => ({
+      label: "溶存酸素とは？",
+      body: [
+        "水に溶けている酸素の量を、その水温で溶け込める最大量に対する割合で示します。エビはエラでこの酸素を取り込んでいます。",
+        "照明が点いている間は水草が酸素を出し、夜は生き物すべてが酸素を使うため、日中に上がり、夜明け前に最も低くなります。"
+      ],
+      note: `このエビの目安：${PROFILE.do.ideal[0]}%以上`
+    })
+  },
+  orp: {
+    en: () => ({
+      label: "What is ORP?",
+      body: [
+        "Oxidation-reduction potential, in millivolts: a rough read on how well the water breaks down waste.",
+        "Clean, oxygen-rich water reads higher. Leftover food, a dirty filter or low oxygen pull it down."
+      ],
+      note: `Probes vary, so there's no universal target. This dial compares against this tank's own normal, about ${ORP_BASELINE.mv} mV.`
+    }),
+    jp: () => ({
+      label: "酸化還元電位（ORP）とは？",
+      body: [
+        "単位はミリボルト（mV）。水が汚れをどれだけ分解できるかの大まかな目安です。",
+        "きれいで酸素の多い水ほど高く、食べ残しやフィルターの汚れ、酸素不足で下がります。"
+      ],
+      note: `プローブごとに値が異なるため共通の目標値はなく、この水槽のふだんの値（約${ORP_BASELINE.mv} mV）と比べて判定しています。`
+    })
+  }
+};
+
+// Fills each tip in the current language (run by applyLanguage).
+function renderInfoTips() {
+  const lang = dialLang();
+  document.querySelectorAll(".info-tip").forEach((tip) => {
+    const copy = INFO_TIPS[tip.dataset.tip]?.[lang]?.();
+    if (!copy) return;
+    tip.querySelector(".info-tip-btn").setAttribute("aria-label", copy.label);
+    tip.querySelector(".info-tip-bubble").innerHTML =
+      copy.body.map((p) => `<p>${p}</p>`).join("") + `<p class="info-tip-note">${copy.note}</p>`;
+  });
+}
+
+// Click/tap pins a tip open (one at a time). Escape hides it even while it's
+// still hovered or focused, until the pointer or focus leaves it.
+function initInfoTips() {
+  const tips = [...document.querySelectorAll(".info-tip")];
+  const setOpen = (tip, open) => {
+    tip.classList.toggle("is-open", open);
+    tip.querySelector(".info-tip-btn").setAttribute("aria-expanded", String(open));
+  };
+  tips.forEach((tip) => {
+    tip.querySelector(".info-tip-btn").addEventListener("click", () => {
+      const open = !tip.classList.contains("is-open");
+      tips.forEach((t) => setOpen(t, t === tip && open));
+      tip.classList.remove("is-dismissed");
+    });
+    tip.addEventListener("mouseleave", () => tip.classList.remove("is-dismissed"));
+    tip.addEventListener("focusout", () => tip.classList.remove("is-dismissed"));
+  });
+  document.addEventListener("click", (e) => {
+    tips.forEach((t) => { if (!t.contains(e.target)) setOpen(t, false); });
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    tips.forEach((t) => {
+      if (t.classList.contains("is-open") || t.matches(":hover, :focus-within")) {
+        setOpen(t, false);
+        t.classList.add("is-dismissed");
+      }
+    });
+  });
+}
 
 /* ---- render ---- */
 function renderDial(key) {
@@ -1589,6 +1686,7 @@ function updateLightCycle() {
 ======================= */
 window.addEventListener("DOMContentLoaded", () => {
   applyLanguage();
+  initInfoTips();
 
   updateDashboard();
   updateDials();

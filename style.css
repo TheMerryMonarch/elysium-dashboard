@@ -384,6 +384,92 @@ main {
 .dial-panel.is-offline .dial-wrap { opacity: 0.65; filter: saturate(0.35); }
 .dial-panel.is-offline .dial-legend { opacity: 0.8; }
 .dial-panel.is-offline .dial-status i { box-shadow: none; }
+
+/* Info tip: an (i) beside a dial's name. The bubble spans the card under the
+   heading (.sensor-head is its anchor), so it never runs off a narrow screen.
+   Hover only counts on devices that really hover; touch pins it with a tap. */
+.dial-panel .sensor-head { position: relative; z-index: 2; }
+.info-tip { display: inline-flex; margin-right: auto; }
+.info-tip[data-tip="do"]  { --tip: #60a5fa; }
+.info-tip[data-tip="orp"] { --tip: #a78bfa; }
+.info-tip-btn {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border: 1px solid rgba(249, 234, 255, 0.35);
+    border-radius: 50%;
+    background: transparent;
+    color: #c9bde6;
+    font: italic 600 0.68rem/1 Georgia, "Times New Roman", serif;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+/* A 32px target around the 16px ring, for fingers. */
+.info-tip-btn::after { content: ""; position: absolute; inset: -8px; }
+.info-tip.is-open .info-tip-btn {
+    color: #fff;
+    border-color: var(--tip);
+    box-shadow: 0 0 8px var(--tip);
+}
+.info-tip-btn:focus-visible { outline: 2px solid #4deeea; outline-offset: 2px; }
+
+.info-tip-bubble {
+    position: absolute;
+    /* Just under the heading row, so it covers the update line whole rather
+       than slicing through it. */
+    top: calc(100% + 2px);
+    left: 0;
+    right: 0;
+    padding: 12px 14px;
+    border: 1px solid rgba(249, 234, 255, 0.2);
+    border-color: color-mix(in srgb, var(--tip) 45%, transparent);
+    border-radius: 10px;
+    background: rgba(9, 5, 24, 0.97);
+    box-shadow:
+        0 14px 30px rgba(0, 0, 0, 0.75),
+        0 0 18px color-mix(in srgb, var(--tip) 16%, transparent);
+    color: #e9defa;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    letter-spacing: normal;
+    text-transform: none;
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.15s, transform 0.15s, visibility 0s linear 0.15s;
+}
+.info-tip-bubble p { margin: 0 0 0.6em; }
+.info-tip-bubble .info-tip-note {
+    margin: 0;
+    padding-top: 0.6em;
+    border-top: 1px solid rgba(249, 234, 255, 0.12);
+    color: color-mix(in srgb, var(--tip) 55%, #fff);
+    font-size: 0.74rem;
+}
+.info-tip.is-open .info-tip-bubble,
+.info-tip-btn:focus-visible + .info-tip-bubble {
+    visibility: visible;
+    opacity: 1;
+    transform: none;
+    transition: opacity 0.15s, transform 0.15s, visibility 0s;
+}
+@media (hover: hover) {
+    .info-tip-btn:hover { color: #fff; border-color: var(--tip); box-shadow: 0 0 8px var(--tip); }
+    .info-tip:hover .info-tip-bubble {
+        visibility: visible;
+        opacity: 1;
+        transform: none;
+        transition: opacity 0.15s, transform 0.15s, visibility 0s;
+    }
+}
+/* Escape wins over hover and focus until the pointer or focus moves on. */
+.info-tip.is-dismissed .info-tip-bubble { visibility: hidden; opacity: 0; transition: none; }
+@media (prefers-reduced-motion: reduce) {
+    .info-tip-bubble { transform: none; transition: none; }
+}
 /* An odd card out (the fifth dial) sits centred on its own row at the same width as the rest. */
 .compact-right > .dial-panel:last-child:nth-child(odd) {
     grid-column: 1 / -1;
