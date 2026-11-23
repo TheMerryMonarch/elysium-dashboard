@@ -772,7 +772,9 @@ function renderInfoTips() {
 }
 
 // Click/tap pins a tip open (one at a time). Escape hides it even while it's
-// still hovered or focused, until the pointer or focus leaves it.
+// still hovered or focused, until the pointer and focus have both left it
+// (pressing Escape makes the focused button :focus-visible, so clearing it on
+// mouseleave alone would bring the tip straight back).
 function initInfoTips() {
   const tips = [...document.querySelectorAll(".info-tip")];
   const setOpen = (tip, open) => {
@@ -785,8 +787,11 @@ function initInfoTips() {
       tips.forEach((t) => setOpen(t, t === tip && open));
       tip.classList.remove("is-dismissed");
     });
-    tip.addEventListener("mouseleave", () => tip.classList.remove("is-dismissed"));
-    tip.addEventListener("focusout", () => tip.classList.remove("is-dismissed"));
+    const undismiss = () => {
+      if (!tip.matches(":hover, :focus-within")) tip.classList.remove("is-dismissed");
+    };
+    tip.addEventListener("mouseleave", undismiss);
+    tip.addEventListener("focusout", undismiss);
   });
   document.addEventListener("click", (e) => {
     tips.forEach((t) => { if (!t.contains(e.target)) setOpen(t, false); });

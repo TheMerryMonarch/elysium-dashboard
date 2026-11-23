@@ -465,7 +465,7 @@ main {
         transition: opacity 0.15s, transform 0.15s, visibility 0s;
     }
 }
-/* Escape wins over hover and focus until the pointer or focus moves on. */
+/* Escape wins over hover and focus until the pointer and focus both move on. */
 .info-tip.is-dismissed .info-tip-bubble { visibility: hidden; opacity: 0; transition: none; }
 @media (prefers-reduced-motion: reduce) {
     .info-tip-bubble { transform: none; transition: none; }
