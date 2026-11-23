@@ -488,14 +488,17 @@ const TANK_SPECIES = "neocaridina";
 // flagging, so its top values sit out of reach; its swing is in percentage
 // points, and a big one means a deep overnight low. Neocaridina temp is the
 // keeper's own range (2026-10-26): 70-75 °F, and anything outside it is a risk.
-// TDS is in ppm and its limits are placeholders until the probe is in.
+// TDS is in ppm at TDS_PPM_PER_US; its ranges are the keeper's (2026-11-23):
+// Neocaridina ideal 150-350, risk below 100 or past 400 (this tank sits steady
+// near 313), 24h swing watch 30 / risk 60; Caridina kept at 100-160 / 80-200.
+// Scale them with the factor if it ever changes.
 const SPECIES_PROFILES = {
   neocaridina: {
     en: "Neocaridina", jp: "ネオカリディナ",
     temp: { ideal: [70, 75],   limit: [70, 75],   swing: { watch: 3,   risk: 5 } },
     ph:   { ideal: [6.8, 7.8], limit: [6.2, 8.2], swing: { watch: 0.8, risk: 1.2 } },
     do:   { ideal: [60, 999],  limit: [45, 999], swing: { watch: 40,  risk: 60 } },
-    tds:  { ideal: [150, 250], limit: [100, 350], swing: { watch: 25,  risk: 50 } }
+    tds:  { ideal: [150, 350], limit: [100, 400], swing: { watch: 30,  risk: 60 } }
   },
   caridina: {
     en: "Caridina", jp: "カリディナ",
