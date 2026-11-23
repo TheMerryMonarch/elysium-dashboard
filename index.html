@@ -261,6 +261,10 @@
       <section class="sensor-panel dial-panel" id="tds-panel" hidden>
         <div class="sensor-head">
           <span class="sensor-name" id="tds-label">TDS</span>
+          <div class="info-tip" data-tip="tds">
+            <button class="info-tip-btn" type="button" aria-expanded="false" aria-describedby="tds-tip"><span aria-hidden="true">i</span></button>
+            <div class="info-tip-bubble" id="tds-tip" role="tooltip"></div>
+          </div>
           <span class="dial-status" id="tds-status" hidden></span>
         </div>
         <div id="tds-last-updated" class="sensor-subtext">Last updated —</div>
@@ -758,6 +762,24 @@ const INFO_TIPS = {
         "きれいで酸素の多い水ほど高く、食べ残しやフィルターの汚れ、酸素不足で下がります。"
       ],
       note: `プローブごとに値が異なるため共通の目標値はなく、この水槽のふだんの値（約${ORP_BASELINE.mv} mV）と比べて判定しています。`
+    })
+  },
+  tds: {
+    en: () => ({
+      label: "What is TDS?",
+      body: [
+        "Total dissolved solids: how much is dissolved in the water, in parts per million. Mostly minerals, which shrimp need to build a new shell each time they molt.",
+        "Steady matters more than the exact number. It creeps up as waste and minerals build up, drops after a water change, and jumps when something is added."
+      ],
+      note: `Healthy for these shrimp: ${PROFILE.tds.ideal[0]}–${PROFILE.tds.ideal[1]} ppm. The probe reads conductivity in µS/cm; the dial converts it to ppm at ×${TDS_PPM_PER_US}, like a TDS pen.`
+    }),
+    jp: () => ({
+      label: "総溶解固形物（TDS）とは？",
+      body: [
+        "水に溶けているものの総量を、ppm（百万分率）で示します。大半はミネラルで、エビは脱皮のたびに新しい殻をつくるのにこれを必要とします。",
+        "大切なのは数値そのものより安定していることです。老廃物やミネラルがたまるとゆっくり上がり、水換えで下がり、何かを加えると急に跳ね上がります。"
+      ],
+      note: `このエビの目安：${PROFILE.tds.ideal[0]}〜${PROFILE.tds.ideal[1]} ppm。プローブは電気伝導度（µS/cm）を測り、TDSペンと同じく×${TDS_PPM_PER_US}でppmに換算しています。`
     })
   }
 };

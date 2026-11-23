@@ -392,6 +392,7 @@ main {
 .info-tip { display: inline-flex; margin-right: auto; }
 .info-tip[data-tip="do"]  { --tip: #60a5fa; }
 .info-tip[data-tip="orp"] { --tip: #a78bfa; }
+.info-tip[data-tip="tds"] { --tip: #ff9e5e; }
 .info-tip-btn {
     position: relative;
     display: inline-grid;
