@@ -697,28 +697,30 @@ const DIAL_SENSORS = {
       `<div class="dial-sub">${Math.round(v / TDS_PPM_PER_US)} µS/cm</div>`
   }
 };
-// How far a reading sits outside the ideal band: 0 inside it, rising to 1 at
-// the risk limit and staying there past it. Where the limit is the ideal edge
-// itself (Neocaridina temp), the ramp runs over a fifth of the band's width.
+// How far a watch reading has come through its watch zone: 0 at the ideal
+// edge, 1 at the risk limit. Only asked of readings levelStatus calls watch,
+// so the zone they sit in always has some width.
 function dialOffIdeal(b, v) {
-  const ramp = (lim, edge) => Math.abs(lim - edge) || (b.ideal[1] - b.ideal[0]) * 0.2;
-  if (v < b.ideal[0]) return Math.min(1, (b.ideal[0] - v) / ramp(b.limit[0], b.ideal[0]));
-  if (v > b.ideal[1]) return Math.min(1, (v - b.ideal[1]) / ramp(b.limit[1], b.ideal[1]));
+  if (v < b.ideal[0]) return Math.min(1, (b.ideal[0] - v) / (b.ideal[0] - b.limit[0]));
+  if (v > b.ideal[1]) return Math.min(1, (v - b.ideal[1]) / (b.limit[1] - b.ideal[1]));
   return 0;
 }
-// The centre reading's colour: the sensor's own, shading to risk red the
-// further it strays from ideal. Judged on the number as displayed. Mixed in
-// OKLCH so the way there runs warm (aqua through orange, blue through
-// magenta) rather than through RGB's muddy grey.
-const DIAL_OKLCH = typeof CSS !== "undefined" && CSS.supports("color", "color-mix(in oklch, red, blue)");
+// The centre reading's colour follows the status pill, judged the same way on
+// the number as displayed. Ideal: the sensor's own colour. Watch: shading from
+// it to the watch yellow, which it reaches at the risk limit. Risk: the risk
+// red, so red only ever means risk. Mixed in OKLab, which runs straight to
+// yellow through cream; OKLCH would swing pink and lavender through salmon on
+// the way, which reads as red.
+const DIAL_OKLAB = typeof CSS !== "undefined" && CSS.supports("color", "color-mix(in oklab, red, blue)");
 function dialValColor(cfg, v) {
-  v = Number(v.toFixed(cfg.dp));
-  const col = cfg.valColor(v), k = dialOffIdeal(cfg.bands(), v);
-  if (k === 0) return col;
-  if (DIAL_OKLCH) return `color-mix(in oklch, ${col}, #ff4d6d ${(k * 100).toFixed(0)}%)`;
-  const rgb = col.startsWith("#") ? [1, 3, 5].map((i) => parseInt(col.slice(i, i + 2), 16)) : col.match(/\d+/g).map(Number);
-  const red = [255, 77, 109];
-  return `rgb(${rgb.map((c, i) => Math.round(c + (red[i] - c) * k)).join(",")})`;
+  const b = cfg.bands(), col = cfg.valColor(v), st = levelStatus(v, b, cfg.dp);
+  if (st === "ideal") return col;
+  if (st === "risk") return DIAL_STATUS.risk.color;
+  const k = dialOffIdeal(b, Number(v.toFixed(cfg.dp))), to = DIAL_STATUS.watch.color;
+  if (DIAL_OKLAB) return `color-mix(in oklab, ${col}, ${to} ${(k * 100).toFixed(0)}%)`;
+  const rgb = (c) => c.startsWith("#") ? [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16)) : c.match(/\d+/g).map(Number);
+  const a = rgb(col), z = rgb(to);
+  return `rgb(${a.map((c, i) => Math.round(c + (z[i] - c) * k)).join(",")})`;
 }
 
 // This tank's ORP baseline since the probe was calibrated (2026-10-14
