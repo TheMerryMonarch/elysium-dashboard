@@ -507,23 +507,23 @@ const TANK_SPECIES = "neocaridina";
 // ideal: where they thrive. limit: past this it's a risk. swing: 24h high
 // minus low, with watch / risk thresholds. DO has no upper limit worth
 // flagging, so its top values sit out of reach; its swing is in percentage
-// points, and a big one means a deep overnight low. Neocaridina temp is the
-// keeper's own range (2026-10-26): 70-75 °F, and anything outside it is a risk.
-// Neocaridina pH is the keeper's band (2026-11-25): ideal 6.8-8.0, watch
-// down to 6.5 and up to 8.25, risk past either. The evening peaks near 8.2
-// read watch, most of the way to red; red comes at 8.25, ahead of MO/TH/ER's
-// urgent page at 8.50.
-// TDS is in ppm at TDS_PPM_PER_US; its ranges are the keeper's (2026-11-23):
-// Neocaridina ideal 150-350, risk below 100 or past 400 (this tank sits steady
-// near 313), 24h swing watch 30 / risk 60; Caridina kept at 100-160 / 80-200.
-// Scale them with the factor if it ever changes.
+// points, and a big one means a deep overnight low.
+// Neocaridina temp, pH and TDS come from the keeper's Blue Jelly shrimp chart
+// (2026-11-26): its "Optimal" is ideal, its "Range" is the outer edge of
+// watch, and anything past the range is a risk. Temp 68-75 / 64-82 °F,
+// pH 6.8-7.5 / 6.5-8.0, TDS 180-250 / 150-300 ppm. The tank's TDS (~310)
+// and evening pH peaks (~8.2) read risk against these; that is intended.
+// The chart's GH and KH have no probe here, so they have no dial.
+// TDS is in ppm at TDS_PPM_PER_US; scale its bands with the factor if it
+// ever changes. Its 24h swing (watch 30 / risk 60) and the Caridina TDS
+// bands (100-160 / 80-200) are the keeper's from 2026-11-23.
 const SPECIES_PROFILES = {
   neocaridina: {
     en: "Neocaridina", jp: "ネオカリディナ",
-    temp: { ideal: [70, 75],   limit: [70, 75],   swing: { watch: 3,   risk: 5 } },
-    ph:   { ideal: [6.8, 8.0], limit: [6.5, 8.25], swing: { watch: 0.8, risk: 1.2 } },
+    temp: { ideal: [68, 75],   limit: [64, 82],   swing: { watch: 3,   risk: 5 } },
+    ph:   { ideal: [6.8, 7.5], limit: [6.5, 8.0], swing: { watch: 0.8, risk: 1.2 } },
     do:   { ideal: [60, 999],  limit: [45, 999], swing: { watch: 40,  risk: 60 } },
-    tds:  { ideal: [150, 350], limit: [100, 400], swing: { watch: 30,  risk: 60 } }
+    tds:  { ideal: [180, 250], limit: [150, 300], swing: { watch: 30,  risk: 60 } }
   },
   caridina: {
     en: "Caridina", jp: "カリディナ",
