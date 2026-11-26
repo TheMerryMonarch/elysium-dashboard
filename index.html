@@ -492,9 +492,9 @@ const TANK_SPECIES = "neocaridina";
 // flagging, so its top values sit out of reach; its swing is in percentage
 // points, and a big one means a deep overnight low. Neocaridina temp is the
 // keeper's own range (2026-10-26): 70-75 °F, and anything outside it is a risk.
-// Neocaridina pH tops out at the keeper's 8.0 ideal and 8.5 limit (2026-11-25),
-// so the evening peaks near 8.2 read warm, not red, and full red matches
-// MO/TH/ER's urgent page at 8.50.
+// Neocaridina pH tops out at the keeper's 7.5 ideal and 8.5 limit (2026-11-25),
+// so the evening peaks near 8.2 read well into the warm range but not red,
+// and full red matches MO/TH/ER's urgent page at 8.50.
 // TDS is in ppm at TDS_PPM_PER_US; its ranges are the keeper's (2026-11-23):
 // Neocaridina ideal 150-350, risk below 100 or past 400 (this tank sits steady
 // near 313), 24h swing watch 30 / risk 60; Caridina kept at 100-160 / 80-200.
@@ -503,7 +503,7 @@ const SPECIES_PROFILES = {
   neocaridina: {
     en: "Neocaridina", jp: "ネオカリディナ",
     temp: { ideal: [70, 75],   limit: [70, 75],   swing: { watch: 3,   risk: 5 } },
-    ph:   { ideal: [6.8, 8.0], limit: [6.2, 8.5], swing: { watch: 0.8, risk: 1.2 } },
+    ph:   { ideal: [6.8, 7.5], limit: [6.2, 8.5], swing: { watch: 0.8, risk: 1.2 } },
     do:   { ideal: [60, 999],  limit: [45, 999], swing: { watch: 40,  risk: 60 } },
     tds:  { ideal: [150, 350], limit: [100, 400], swing: { watch: 30,  risk: 60 } }
   },
