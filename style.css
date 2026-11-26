@@ -1004,22 +1004,6 @@ main {
     );
 }
 
-
-.mother-cursor {
-    display: inline-block;
-    width: 0.55em;
-    height: 1em;
-    margin-left: 0.35em;
-    vertical-align: text-bottom;
-    background: #6dff8f;
-    box-shadow: 0 0 8px rgba(109, 255, 143, 0.8);
-    animation: mother-blink 1.1s steps(1) infinite;
-}
-
-@keyframes mother-blink {
-    50% { opacity: 0; }
-}
-
 /* MUSASHI reads as a chat log: her sigil in the gutter, the timestamp out in
    the margin, and each utterance in its own demarcated block. The renderer
    strips the clock she prefixes to her own prose, so the time is stated once
@@ -1301,10 +1285,6 @@ main {
 }
 .mr-reason { margin-top: 0.3rem; font-style: italic; color: #a8ffbe; }
 .mr-error { color: #ffcf6d; }
-
-@media (prefers-reduced-motion: reduce) {
-    .mother-cursor { animation: none; }
-}
 
 /* Narrow screens: stack exactly like the old layout; video never shrinks */
 @media (max-width: 1150px) {
