@@ -817,7 +817,7 @@ main {
 }
 
 .spec { display: flex; align-items: center; gap: 11px; }
-.spec svg { width: 28px; height: 28px; flex: 0 0 auto; }
+.spec svg { width: 40px; height: 40px; flex: 0 0 auto; }
 .spec b { font-weight: 600; font-size: 0.8rem; display: block; line-height: 1.15; }
 .spec span { font-size: 0.68rem; color: #9aa0c0; }
 .specs-grid .spec:nth-child(1) { color: #4deeea; }
